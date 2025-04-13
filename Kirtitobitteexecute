@@ -1,0 +1,40 @@
+-- Auto-Farm + Auto-Rebirth + Auto-Kill by ChatGPT
+
+-- Einstellungen
+local autoFarm = true
+local autoRebirth = true
+local autoKill = true
+
+-- Warte auf das Laden
+repeat wait() until game:IsLoaded()
+local player = game.Players.LocalPlayer
+local repsEvent = game:GetService("ReplicatedStorage").Events.rep
+
+-- Auto-Farm Funktion
+spawn(function()
+    while autoFarm do
+        repsEvent:FireServer("rep")
+        wait(0.1) -- Geschwindigkeit der Wiederholungen (anpassen bei Lag)
+    end
+end)
+
+-- Auto-Rebirth Funktion
+spawn(function()
+    while autoRebirth do
+        game:GetService("ReplicatedStorage").Events.rebirth:FireServer()
+        wait(5) -- Alle 5 Sekunden Rebirth (anpassen je nach Stärke)
+    end
+end)
+
+-- Auto-Kill Funktion (killt alle Spieler in der Nähe)
+spawn(function()
+    while autoKill do
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character:MoveTo(plr.Character.HumanoidRootPart.Position)
+                wait(0.5)
+            end
+        end
+        wait(1)
+    end
+end)
