@@ -1,0 +1,116 @@
+-- Muscle Legends Script
+
+-- Funktionen
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Variable deklarieren
+local Character = game.Players.LocalPlayer.Character
+local humanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local walkspeed = 16
+local jumpPower = 50
+local autoFarm = true
+local autoKill = true
+
+-- Funktionen erstellen
+local function onWalk(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        local movement = input.KeyCode
+        if movement == Enum.KeyCode.W then
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame + (game.Workspace.World.CFrame * Vector3.new(0, 0, walkspeed / 100))
+        elseif movement == Enum.KeyCode.S then
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame - (game.Workspace.World.CFrame * Vector3.new(0, 0, walkspeed / 100))
+        elseif movement == Enum.KeyCode.A then
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame - (game.Workspace.World.CFrame * Vector3.new(walkspeed / 100, 0, 0))
+        elseif movement == Enum.KeyCode.D then
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame + (game.Workspace.World.CFrame * Vector3.new(walkspeed / 100, 0, 0))
+        end
+    end
+end
+
+local function onJump(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        local movement = input.KeyCode
+        if movement == Enum.KeyCode.Space then
+            humanoidRootPart.Velocity = Vector3.new(0, jumpPower, 0)
+        end
+    end
+end
+
+local function autoFarmFunction()
+    while autoFarm do
+        local character = game.Players.LocalPlayer.Character
+        local humanoid = character:WaitForChild("Humanoid")
+        local target = game.Workspace:GetChildren()[math.random(1, #game.Workspace:GetChildren())]
+        if target:FindFirstChild("Humanoid") then
+            local distance = (character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
+            if distance < 10 then
+                local raycast = Ray.new(character.HumanoidRootPart.Position, target.HumanoidRootPart.Position - character.HumanoidRootPart.Position)
+                local hit, position = workspace:FindPartBounds(raycast)
+                if hit then
+                    local damage = 100
+                    local part = game.Workspace:FindFirstChild("Part")
+                    if part then
+                        part.Material = Enum.Material.Neon
+                        part.BrickColor = BrickColor.new("Bright blue")
+                        part.Transparency = 0.5
+                        part.Size = Vector3.new(1, 1, 1)
+                        part.Position = position
+                        part.Anchored = true
+                        wait(1)
+                        part:Destroy()
+                    end
+                end
+            end
+        end
+        wait(0.5)
+    end
+end
+
+local function autoKillFunction()
+    while autoKill do
+        local character = game.Players.LocalPlayer.Character
+        local humanoid = character:WaitForChild("Humanoid")
+        local target = game.Workspace:GetChildren()[math.random(1, #game.Workspace:GetChildren())]
+        if target:FindFirstChild("Humanoid") then
+            local distance = (character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
+            if distance < 10 then
+                local raycast = Ray.new(character.HumanoidRootPart.Position, target.HumanoidRootPart.Position - character.HumanoidRootPart.Position)
+                local hit, position = workspace:FindPartBounds(raycast)
+                if hit then
+                    local damage = 100
+                    local part = game.Workspace:FindFirstChild("Part")
+                    if part then
+                        part.Material = Enum.Material.Neon
+                        part.BrickColor = BrickColor.new("Bright blue")
+                        part.Transparency = 0.5
+                        part.Size = Vector3.new(1, 1, 1)
+                        part.Position = position
+                        part.Anchored = true
+                        wait(1)
+                        part:Destroy()
+                        humanoid.Health = 0
+                    end
+                end
+            end
+        end
+        wait(0.5)
+    end
+end
+
+-- Ereignisse hinzufügen
+UserInputService.InputBegan:Connect(onWalk)
+UserInputService.InputBegan:Connect(onJump)
+autoFarmFunction()
+autoKillFunction()
+
+-- Anpassungen
+while wait(1) do
+    if game:GetService("RunService").RenderStepped:Connect(function()
+        -- Anpassungen hier einfügen
+    end) then
+        -- Anpassungen hier einfügen
+    end
+end
