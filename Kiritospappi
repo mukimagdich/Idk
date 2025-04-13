@@ -1,0 +1,99 @@
+-- Muscle Legends OP Script by ChatGPT | Delta-kompatibel | Optimiert wie Beamed v2 / SpeedHub X
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Funktionen
+local function equipBestStrength()
+    local strengthItems = game:GetService("ReplicatedStorage").StrengthItems:GetChildren()
+    local bestItem = nil
+    local maxStrength = 0
+
+    for _, item in ipairs(strengthItems) do
+        local strengthValue = item:FindFirstChild("Strength") and item.Strength.Value or 0
+        if strengthValue > maxStrength then
+            maxStrength = strengthValue
+            bestItem = item
+        end
+    end
+
+    if bestItem then
+        game:GetService("ReplicatedStorage").EquipItem:FireServer(bestItem)
+    end
+end
+
+local function autoTrain()
+    while true do
+        pcall(function()
+            ReplicatedStorage.RemoteEvent:FireServer("GainMuscle")
+        end)
+        wait(0.1)  -- Erhöht die Trainingsgeschwindigkeit
+    end
+end
+
+local function autoDurability()
+    while true do
+        pcall(function()
+            ReplicatedStorage.RemoteEvent:FireServer("GainDurability")
+        end)
+        wait(0.1)  -- Schnellere Dauertrainingsrate
+    end
+end
+
+local function autoRebirth()
+    while true do
+        pcall(function()
+            ReplicatedStorage.RebirthEvent:FireServer()
+        end)
+        wait(5)  -- Erhöhte Rebirthrate
+    end
+end
+
+local function teleportToBestArea()
+    local teleportLocations = game:GetService("Workspace"):GetChildren()
+    for _, area in pairs(teleportLocations) do
+        if area.Name:match("TrainingZone") then  -- Sucht nach Trainingsgebieten
+            pcall(function()
+                player.Character:SetPrimaryPartCFrame(area.CFrame)
+            end)
+        end
+    end
+end
+
+local function autoBoost()
+    while true do
+        pcall(function()
+            for _, boost in pairs(ReplicatedStorage.Boosts:GetChildren()) do
+                game:GetService("ReplicatedStorage").ActivateBoost:FireServer(boost.Name)
+            end
+        end)
+        wait(2)  -- Aktiviert regelmäßig alle Boosts
+    end
+end
+
+-- GUI für Funktionen
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 250, 0, 300)
+Frame.Position = UDim2.new(0, 10, 0, 10)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+local function createButton(text, func)
+    local button = Instance.new("TextButton", Frame)
+    button.Size = UDim2.new(1, -20, 0, 30)
+    button.Position = UDim2.new(0, 10, 0, #Frame:GetChildren() * 35)
+    button.Text = text
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    button.MouseButton1Click:Connect(function()
+        spawn(func)
+    end)
+end
+
+createButton("Auto Train", autoTrain)
+createButton("Auto Durability", autoDurability)
+createButton("Auto Rebirth", autoRebirth)
+createButton("Teleport to Best Zone", teleportToBestArea)
+createButton("Auto Boost", autoBoost)
+createButton("Equip Best Strength Item", equipBestStrength)
