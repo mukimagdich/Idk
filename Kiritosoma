@@ -1,0 +1,146 @@
+-- Muscle Legends Full OP Script mit GUI
+-- by ChatGPT (2025 Edition)
+
+local player = game.Players.LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
+local events = rs:WaitForChild("Events")
+
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+ScreenGui.Name = "ML_Trainer_GUI"
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 250, 0, 300)
+Frame.Position = UDim2.new(0, 10, 0, 100)
+Frame.BackgroundTransparency = 0.2
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+-- Buttons + States
+local toggles = {
+    reps = false,
+    rebirth = false,
+    upgrade = false,
+    autoSell = false,
+    crystals = false
+}
+
+function createButton(name, posY, callback)
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 16
+    btn.Text = name
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- Core Functions
+local function equipBestPets()
+    for _, v in pairs(rs:WaitForChild("Remotes"):GetChildren()) do
+        if v.Name:lower():find("equip") and v:IsA("RemoteFunction") then
+            pcall(function()
+                v:InvokeServer("Best")
+            end)
+        end
+    end
+end
+
+local function autoReps()
+    spawn(function()
+        local muscle = rs:WaitForChild("MuscleEvent")
+        while wait(0.05) do
+            if not toggles.reps then break end
+            pcall(function()
+                muscle:FireServer("GainMuscle")
+            end)
+        end
+    end)
+end
+
+local function autoRebirth()
+    spawn(function()
+        local rebirth = rs:FindFirstChild("RebirthEvent") or rs:WaitForChild("RebirthEvent")
+        while wait(3) do
+            if not toggles.rebirth then break end
+            pcall(function()
+                equipBestPets()
+                wait(0.3)
+                rebirth:FireServer()
+            end)
+        end
+    end)
+end
+
+local function autoUpgradeStats()
+    spawn(function()
+        local upgrade = rs:WaitForChild("StatUpEvent")
+        while wait(1.5) do
+            if not toggles.upgrade then break end
+            pcall(function()
+                upgrade:FireServer("Muscle", 10)
+                upgrade:FireServer("Durability", 10)
+            end)
+        end
+    end)
+end
+
+local function autoCrystalFarm()
+    spawn(function()
+        while wait(3) do
+            if not toggles.crystals then break end
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("TouchTransmitter") and v.Parent and v.Parent.Name:lower():find("crystal") then
+                    firetouchinterest(player.Character.HumanoidRootPart, v.Parent, 0)
+                    wait()
+                    firetouchinterest(player.Character.HumanoidRootPart, v.Parent, 1)
+                end
+            end
+        end
+    end)
+end
+
+local function autoSell()
+    spawn(function()
+        while wait(4) do
+            if not toggles.autoSell then break end
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("TouchTransmitter") and v.Parent and v.Parent.Name:lower():find("sell") then
+                    firetouchinterest(player.Character.HumanoidRootPart, v.Parent, 0)
+                    wait()
+                    firetouchinterest(player.Character.HumanoidRootPart, v.Parent, 1)
+                end
+            end
+        end
+    end)
+end
+
+-- Buttons hinzufügen
+createButton("Auto Reps", 10, function()
+    toggles.reps = not toggles.reps
+    autoReps()
+end)
+
+createButton("Auto Rebirth + Best Pets", 60, function()
+    toggles.rebirth = not toggles.rebirth
+    autoRebirth()
+end)
+
+createButton("Auto Upgrade Stats", 110, function()
+    toggles.upgrade = not toggles.upgrade
+    autoUpgradeStats()
+end)
+
+createButton("Auto Crystal Farm", 160, function()
+    toggles.crystals = not toggles.crystals
+    autoCrystalFarm()
+end)
+
+createButton("Auto Sell", 210, function()
+    toggles.autoSell = not toggles.autoSell
+    autoSell()
+end)
+
+-- Optional: GUI Beweglich machen
+Frame.Active = true
+Frame.Draggable = true
