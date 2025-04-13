@@ -1,0 +1,29 @@
+-- AutoKill (Clientseitig, Delta-kompatibel)
+-- Teleportiert dich zu jedem Spieler und schlägt ihn (wenn du stark genug bist)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+function Attack()
+    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if tool then
+        tool:Activate()
+    end
+end
+
+while true do
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local enemyHRP = player.Character.HumanoidRootPart
+            local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if myHRP then
+                -- Teleportiere dich zu ihm
+                myHRP.CFrame = enemyHRP.CFrame * CFrame.new(0, 0, 2)
+                wait(0.2)
+                Attack()
+            end
+        end
+    end
+    wait(0.5)
+end
