@@ -1,191 +1,31 @@
--- Muscle Legends Script mit AutoKill 1, AutoKill 2 und Fly 1 in einer UI
+--// UI erstellen
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local AutoKillButton = Instance.new("TextButton")
+local FlyButton = Instance.new("TextButton")
 
--- Services
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
 
--- Player & Character
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.Name = "MuscleLegendsUI"
 
--- Variablen
-local walkspeed = 16
-local jumpPower = 50
-local autoFarm = false
-local autoKill = false
-local fly = false
+Frame.Size = UDim2.new(0, 220, 0, 160)
+Frame.Position = UDim2.new(0, 50, 0, 100)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Parent = ScreenGui
 
--- UI erstellen
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "AlbomageierUI"
+-- AutoKill Button
+AutoKillButton.Size = UDim2.new(0, 200, 0, 50)
+AutoKillButton.Position = UDim2.new(0, 10, 0, 15)
+AutoKillButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+AutoKillButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoKillButton.Text = "AutoKill: OFF"
+AutoKillButton.Parent = Frame
 
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 300, 0, 200)
-frame.Position = UDim2.new(0, 10, 0, 10)
-frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-
-local titleLabel = Instance.new("TextLabel", frame)
-titleLabel.Size = UDim2.new(1, 0, 0.2, 0)
-titleLabel.Position = UDim2.new(0, 0, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Albomageier"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextScaled = true
-titleLabel.Font = Enum.Font.GothamBold
-
-local autoKillButton = Instance.new("TextButton", frame)
-autoKillButton.Size = UDim2.new(1, 0, 0.2, 0)
-autoKillButton.Position = UDim2.new(0, 0, 0.2, 0)
-autoKillButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-autoKillButton.Text = "Toggle AutoKill 1"
-autoKillButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoKillButton.TextScaled = true
-autoKillButton.Font = Enum.Font.GothamBold
-
-local autoKill2Button = Instance.new("TextButton", frame)
-autoKill2Button.Size = UDim2.new(1, 0, 0.2, 0)
-autoKill2Button.Position = UDim2.new(0, 0, 0.4, 0)
-autoKill2Button.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-autoKill2Button.Text = "Toggle AutoKill 2"
-autoKill2Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoKill2Button.TextScaled = true
-autoKill2Button.Font = Enum.Font.GothamBold
-
-local flyButton = Instance.new("TextButton", frame)
-flyButton.Size = UDim2.new(1, 0, 0.2, 0)
-flyButton.Position = UDim2.new(0, 0, 0.6, 0)
-flyButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
-flyButton.Text = "Toggle Fly 1"
-flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyButton.TextScaled = true
-flyButton.Font = Enum.Font.GothamBold
-
--- Funktionen erstellen
-
-local function onWalk(input)
-    if input.UserInputType == Enum.UserInputType.Keyboard then
-        local movement = input.KeyCode
-        if movement == Enum.KeyCode.W then
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame + (game.Workspace.World.CFrame * Vector3.new(0, 0, walkspeed / 100))
-        elseif movement == Enum.KeyCode.S then
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame - (game.Workspace.World.CFrame * Vector3.new(0, 0, walkspeed / 100))
-        elseif movement == Enum.KeyCode.A then
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame - (game.Workspace.World.CFrame * Vector3.new(walkspeed / 100, 0, 0))
-        elseif movement == Enum.KeyCode.D then
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame + (game.Workspace.World.CFrame * Vector3.new(walkspeed / 100, 0, 0))
-        end
-    end
-end
-
-local function onJump(input)
-    if input.UserInputType == Enum.UserInputType.Keyboard then
-        local movement = input.KeyCode
-        if movement == Enum.KeyCode.Space then
-            humanoidRootPart.Velocity = Vector3.new(0, jumpPower, 0)
-        end
-    end
-end
-
-local function autoFarmFunction()
-    while autoFarm do
-        local target = game.Workspace:GetChildren()[math.random(1, #game.Workspace:GetChildren())]
-        if target:FindFirstChild("Humanoid") then
-            local distance = (character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
-            if distance < 10 then
-                local raycast = Ray.new(character.HumanoidRootPart.Position, target.HumanoidRootPart.Position - character.HumanoidRootPart.Position)
-                local hit, position = workspace:FindPartBounds(raycast)
-                if hit then
-                    local part = game.Workspace:FindFirstChild("Part")
-                    if part then
-                        part.Material = Enum.Material.Neon
-                        part.BrickColor = BrickColor.new("Bright blue")
-                        part.Transparency = 0.5
-                        part.Size = Vector3.new(1, 1, 1)
-                        part.Position = position
-                        part.Anchored = true
-                        wait(1)
-                        part:Destroy()
-                    end
-                end
-            end
-        end
-        wait(0.5)
-    end
-end
-
-local function autoKillFunction()
-    while autoKill do
-        local target = game.Workspace:GetChildren()[math.random(1, #game.Workspace:GetChildren())]
-        if target:FindFirstChild("Humanoid") then
-            local distance = (character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
-            if distance < 10 then
-                local raycast = Ray.new(character.HumanoidRootPart.Position, target.HumanoidRootPart.Position - character.HumanoidRootPart.Position)
-                local hit, position = workspace:FindPartBounds(raycast)
-                if hit then
-                    local part = game.Workspace:FindFirstChild("Part")
-                    if part then
-                        part.Material = Enum.Material.Neon
-                        part.BrickColor = BrickColor.new("Bright blue")
-                        part.Transparency = 0.5
-                        part.Size = Vector3.new(1, 1, 1)
-                        part.Position = position
-                        part.Anchored = true
-                        wait(1)
-                        part:Destroy()
-                        target.Humanoid.Health = 0
-                    end
-                end
-            end
-        end
-        wait(0.5)
-    end
-end
-
-local function flyFunction()
-    while fly do
-        local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
-        bodyVelocity.Velocity = humanoidRootPart.CFrame.LookVector * walkspeed
-        bodyVelocity.Parent = humanoidRootPart
-        wait(0.1)
-        bodyVelocity:Destroy()
-    end
-end
-
--- Buttons um AutoKill, AutoFarm und Fly zu togglen
-autoKillButton.MouseButton1Click:Connect(function()
-    autoKill = not autoKill
-    if autoKill then
-        autoKillButton.Text = "AutoKill 1: ON"
-        autoKillFunction()
-    else
-        autoKillButton.Text = "Toggle AutoKill 1"
-    end
-end)
-
-autoKill2Button.MouseButton1Click:Connect(function()
-    autoFarm = not autoFarm
-    if autoFarm then
-        autoKill2Button.Text = "AutoKill 2: ON"
-        autoFarmFunction()
-    else
-        autoKill2Button.Text = "Toggle AutoKill 2"
-    end
-end)
-
-flyButton.MouseButton1Click:Connect(function()
-    fly = not fly
-    if fly then
-        flyButton.Text = "Fly 1: ON"
-        flyFunction()
-    else
-        flyButton.Text = "Toggle Fly 1"
-    end
-end)
-
--- Ereignisse hinzufügen
-UserInputService.InputBegan:Connect(onWalk)
-UserInputService.InputBegan:Connect(onJump)
+-- Fly Button
+FlyButton.Size = UDim2.new(0, 200, 0, 50)
+FlyButton.Position = UDim2.new(0, 10, 0, 85)
+FlyButton.BackgroundColor3 = Color3.fromRGB(50, 
