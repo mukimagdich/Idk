@@ -28,86 +28,7 @@ local function createButton(name, yPos)
     return btn
 end
 
-local autoKillBtn = createButton("AutoKill", 10)
-local flyBtn = createButton("Fly", 65)
-local autoClickerBtn = createButton("AutoClicker", 120)
-
---// AutoKill + AutoPunch
-local autoKill = false
-autoKillBtn.MouseButton1Click:Connect(function()
-    autoKill = not autoKill
-    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
-end)
-
-task.spawn(function()
-    while true do
-        if autoKill and player.Character then
-            local myChar = player.Character
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local enemy = plr.Character
-                    local root = enemy:FindFirstChild("HumanoidRootPart")
-                    if root and myRoot then
-                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
-                        for _, part in pairs(myChar:GetChildren()) do
-                            if part:IsA("Tool") or part:IsA("Part") then
-                                pcall(function()
-                                    firetouchinterest(part, root, 0)
-                                    firetouchinterest(part, root, 1)
-                                end)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.5)
-    end
-end)
-
---// Fly Setup
-local flying = false
-local speed = 50
-
-local bv = Instance.new("BodyVelocity")
-bv.Velocity = Vector3.zero
-bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-bv.Name = "FlyVelocity"
-
-local bg = Instance.new("BodyGyro")
-bg.P = 9e4
-bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-bg.Name = "FlyGyro"
-
-flyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
-    if flying then
-        bv.Parent = hrp
-        bg.Parent = hrp
-        flyBtn.Text = "Fly: ON"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    else
-        bv.Parent = nil
-        bg.Parent = nil
-        flyBtn.Text = "Fly: OFF"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if flying then
-        local cam = workspace.CurrentCamera
-        bg.CFrame = cam.CFrame
-        local moveVec = humanoid.MoveDirection
-        if moveVec.Magnitude > 0 then
-            local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
-            bv.Velocity = direction * speed
-        else
-            bv.Velocity = Vector3.zero
-        end
-    end
-end)
+local autoClickerBtn = createButton("AutoClicker", 10)
 
 --// AutoClicker
 local autoClicker = false
@@ -118,17 +39,28 @@ autoClickerBtn.MouseButton1Click:Connect(function()
     autoClickerBtn.Text = "AutoClicker: " .. (autoClicker and "ON" or "OFF")
 end)
 
--- Funktion um die Klicks zu simulieren
+-- Funktion um die Klicks zu simulieren (Mitte des Bildschirms)
 local function autoClick()
-    local tool = char:FindFirstChildWhichIsA("Tool")
-    if tool and tool:FindFirstChild("Handle") then
-        while autoClicker do
-            pcall(function()
-                firetouchinterest(tool.Handle, tool.Handle, 0)
-                firetouchinterest(tool.Handle, tool.Handle, 1)
-            end)
-            wait(clickInterval)
-        end
+    while autoClicker do
+        -- Klick simulieren in der Mitte des Bildschirms
+        local mouse = player:GetMouse()
+        local screenCenter = Vector2.new(mouse.ViewSizeX / 2, mouse.ViewSizeY / 2)
+        
+        -- Klickere an der Position der Bildschirmmitte
+        pcall(function()
+            local mousePos = game:GetService("UserInputService"):GetMouseLocation()
+            game:GetService("UserInputService"):InputBegin({
+                UserInputType = Enum.UserInputType.MouseButton1,
+                Position = mousePos,
+            })
+            game:GetService("UserInputService"):InputEnd({
+                UserInputType = Enum.UserInputType.MouseButton1,
+                Position = mousePos,
+            })
+        end)
+        
+        -- Warte auf den nächsten Klick basierend auf dem Intervall
+        wait(clickInterval)
     end
 end
 
