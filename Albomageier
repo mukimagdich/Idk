@@ -28,70 +28,117 @@ local function createButton(name, yPos)
     return btn
 end
 
-local autoClickerBtn = createButton("AutoClicker", 10)
+local autoKillBtn = createButton("AutoKill", 10)
+local flyBtn = createButton("Fly", 65)
+local autoKill2Btn = createButton("AutoKill 2", 120)
 
---// AutoClicker
-local autoClicker = false
-local clickInterval = 0.1 -- Zeit in Sekunden zwischen Klicks (kann angepasst werden)
-
-autoClickerBtn.MouseButton1Click:Connect(function()
-    autoClicker = not autoClicker
-    autoClickerBtn.Text = "AutoClicker: " .. (autoClicker and "ON" or "OFF")
+--// AutoKill 1 (mit AutoHit)
+local autoKill = false
+autoKillBtn.MouseButton1Click:Connect(function()
+    autoKill = not autoKill
+    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
 end)
 
--- Funktion um die Klicks zu simulieren (Mitte des Bildschirms)
-local function autoClick()
-    while autoClicker do
-        -- Klick simulieren in der Mitte des Bildschirms
-        local mouse = player:GetMouse()
-        local screenCenter = Vector2.new(mouse.ViewSizeX / 2, mouse.ViewSizeY / 2)
-        
-        -- Klickere an der Position der Bildschirmmitte
-        pcall(function()
-            local mousePos = game:GetService("UserInputService"):GetMouseLocation()
-            game:GetService("UserInputService"):InputBegin({
-                UserInputType = Enum.UserInputType.MouseButton1,
-                Position = mousePos,
-            })
-            game:GetService("UserInputService"):InputEnd({
-                UserInputType = Enum.UserInputType.MouseButton1,
-                Position = mousePos,
-            })
-        end)
-        
-        -- Warte auf den nächsten Klick basierend auf dem Intervall
-        wait(clickInterval)
-    end
-end
-
--- Starte den AutoClicker-Thread
 task.spawn(function()
     while true do
-        if autoClicker then
-            autoClick()
+        if autoKill and player.Character then
+            local myChar = player.Character
+            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+            local tool = myChar:FindFirstChildWhichIsA("Tool")
+            
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local enemy = plr.Character
+                    local root = enemy:FindFirstChild("HumanoidRootPart")
+                    if root and myRoot then
+                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
+                        if tool and tool:FindFirstChild("Handle") then
+                            pcall(function()
+                                firetouchinterest(tool.Handle, root, 0)
+                                firetouchinterest(tool.Handle, root, 1)
+                            end)
+                        end
+                    end
+                end
+            end
         end
-        wait(0.1)
+        task.wait(0.5)
     end
 end)
 
---// Anpassbare Klickfrequenz (in Sekunden)
-local userInputService = game:GetService("UserInputService")
+--// Fly
+local flying = false
+local speed = 50
 
-local inputBox = Instance.new("TextBox", frame)
-inputBox.Size = UDim2.new(0, 200, 0, 30)
-inputBox.Position = UDim2.new(0, 10, 0, 180)
-inputBox.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-inputBox.Text = tostring(clickInterval)
-inputBox.TextScaled = true
-inputBox.Font = Enum.Font.GothamBold
-inputBox.PlaceholderText = "Click Interval (s)"
+local bv = Instance.new("BodyVelocity")
+bv.Velocity = Vector3.zero
+bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+bv.Name = "FlyVelocity"
 
-inputBox.FocusLost:Connect(function()
-    local newInterval = tonumber(inputBox.Text)
-    if newInterval and newInterval > 0 then
-        clickInterval = newInterval
+local bg = Instance.new("BodyGyro")
+bg.P = 9e4
+bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+bg.Name = "FlyGyro"
+
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        bv.Parent = hrp
+        bg.Parent = hrp
+        flyBtn.Text = "Fly: ON"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
     else
-        inputBox.Text = tostring(clickInterval)
+        bv.Parent = nil
+        bg.Parent = nil
+        flyBtn.Text = "Fly: OFF"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if flying then
+        local cam = workspace.CurrentCamera
+        bg.CFrame = cam.CFrame
+        local moveVec = humanoid.MoveDirection
+        if moveVec.Magnitude > 0 then
+            local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
+            bv.Velocity = direction * speed
+        else
+            bv.Velocity = Vector3.zero
+        end
+    end
+end)
+
+--// AutoKill 2 (separat)
+local autoKill2 = false
+autoKill2Btn.MouseButton1Click:Connect(function()
+    autoKill2 = not autoKill2
+    autoKill2Btn.Text = "AutoKill 2: " .. (autoKill2 and "ON" or "OFF")
+end)
+
+task.spawn(function()
+    while true do
+        if autoKill2 and player.Character then
+            local myChar = player.Character
+            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+            local tool = myChar:FindFirstChildWhichIsA("Tool")
+            
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local enemy = plr.Character
+                    local root = enemy:FindFirstChild("HumanoidRootPart")
+                    if root and myRoot then
+                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
+                        if tool and tool:FindFirstChild("Handle") then
+                            pcall(function()
+                                firetouchinterest(tool.Handle, root, 0)
+                                firetouchinterest(tool.Handle, root, 1)
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.5)
     end
 end)
