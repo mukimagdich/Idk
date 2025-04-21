@@ -1,7 +1,6 @@
 --// Services & Player
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid")
@@ -32,7 +31,6 @@ end
 local autoKillBtn = createButton("AutoKill", 10)
 local flyBtn = createButton("Fly", 65)
 local autoHitBtn = createButton("Auto Hit", 120)
-local hitboxBtn = createButton("TP Jungle Rock", 175)
 
 --// AutoKill + AutoPunch
 local autoKill = false
@@ -111,7 +109,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
---// Auto Hit (dauerhaft schlagen)
+--// Auto Hit (mit Tool in deinem Inventar)
 local autoHit = false
 autoHitBtn.MouseButton1Click:Connect(function()
     autoHit = not autoHit
@@ -134,16 +132,5 @@ task.spawn(function()
             end
         end
         task.wait(0.2)
-    end
-end)
-
---// Hitbox TP (nur die Hitbox des Jungle Rocks vor dich)
-hitboxBtn.MouseButton1Click:Connect(function()
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name:lower():find("jungle") and obj.Name:lower():find("rock") then
-            -- Teleportiere nur die Hitbox (BasePart)
-            obj.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
-            break
-        end
     end
 end)
