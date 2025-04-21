@@ -30,7 +30,7 @@ end
 
 local autoKillBtn = createButton("AutoKill", 10)
 local flyBtn = createButton("Fly", 65)
-local autoHitBtn = createButton("Auto Hit", 120)
+local autoClickerBtn = createButton("AutoClicker", 120)
 
 --// AutoKill + AutoPunch
 local autoKill = false
@@ -109,28 +109,57 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
---// Auto Hit (mit Tool in deinem Inventar)
-local autoHit = false
-autoHitBtn.MouseButton1Click:Connect(function()
-    autoHit = not autoHit
-    autoHitBtn.Text = "Auto Hit: " .. (autoHit and "ON" or "OFF")
+--// AutoClicker
+local autoClicker = false
+local clickInterval = 0.1 -- Zeit in Sekunden zwischen Klicks (kann angepasst werden)
+
+autoClickerBtn.MouseButton1Click:Connect(function()
+    autoClicker = not autoClicker
+    autoClickerBtn.Text = "AutoClicker: " .. (autoClicker and "ON" or "OFF")
 end)
 
+-- Funktion um die Klicks zu simulieren
+local function autoClick()
+    local tool = char:FindFirstChildWhichIsA("Tool")
+    if tool and tool:FindFirstChild("Handle") then
+        while autoClicker do
+            pcall(function()
+                firetouchinterest(tool.Handle, tool.Handle, 0)
+                firetouchinterest(tool.Handle, tool.Handle, 1)
+            end)
+            wait(clickInterval)
+        end
+    end
+end
+
+-- Starte den AutoClicker-Thread
 task.spawn(function()
     while true do
-        if autoHit then
-            local tool = char:FindFirstChildWhichIsA("Tool")
-            if tool and tool:FindFirstChild("Handle") then
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if obj:IsA("BasePart") and obj.Name:lower():find("dummy") then
-                        pcall(function()
-                            firetouchinterest(tool.Handle, obj, 0)
-                            firetouchinterest(tool.Handle, obj, 1)
-                        end)
-                    end
-                end
-            end
+        if autoClicker then
+            autoClick()
         end
-        task.wait(0.2)
+        wait(0.1)
+    end
+end)
+
+--// Anpassbare Klickfrequenz (in Sekunden)
+local userInputService = game:GetService("UserInputService")
+
+local inputBox = Instance.new("TextBox", frame)
+inputBox.Size = UDim2.new(0, 200, 0, 30)
+inputBox.Position = UDim2.new(0, 10, 0, 180)
+inputBox.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+inputBox.Text = tostring(clickInterval)
+inputBox.TextScaled = true
+inputBox.Font = Enum.Font.GothamBold
+inputBox.PlaceholderText = "Click Interval (s)"
+
+inputBox.FocusLost:Connect(function()
+    local newInterval = tonumber(inputBox.Text)
+    if newInterval and newInterval > 0 then
+        clickInterval = newInterval
+    else
+        inputBox.Text = tostring(clickInterval)
     end
 end)
