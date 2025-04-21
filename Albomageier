@@ -1,33 +1,38 @@
 --// Services & Player
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid")
 local hrp = char:WaitForChild("HumanoidRootPart")
 
---// UI erstellen
+--// UI Setup
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "MuscleLegendsUI"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 220, 0, 160)
-frame.Position = UDim2.new(0, 50, 0, 100)
+frame.Size = UDim2.new(0, 240, 0, 250)
+frame.Position = UDim2.new(0, 30, 0, 100)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
 
-local autoKillBtn = Instance.new("TextButton", frame)
-autoKillBtn.Size = UDim2.new(0, 200, 0, 50)
-autoKillBtn.Position = UDim2.new(0, 10, 0, 15)
-autoKillBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-autoKillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoKillBtn.Text = "AutoKill: OFF"
+local function createButton(name, yPos)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0, 220, 0, 45)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = name .. ": OFF"
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamBold
+    return btn
+end
 
-local flyBtn = Instance.new("TextButton", frame)
-flyBtn.Size = UDim2.new(0, 200, 0, 50)
-flyBtn.Position = UDim2.new(0, 10, 0, 85)
-flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-flyBtn.TextColor3 = Color3.new(1, 1, 1)
-flyBtn.Text = "Fly: OFF"
+local autoKillBtn = createButton("AutoKill", 10)
+local flyBtn = createButton("Fly", 65)
+local autoHitBtn = createButton("Auto Hit", 120)
+local hitboxBtn = createButton("TP Jungle Rock", 175)
 
 --// AutoKill + AutoPunch
 local autoKill = false
@@ -47,8 +52,6 @@ task.spawn(function()
                     local root = enemy:FindFirstChild("HumanoidRootPart")
                     if root and myRoot then
                         root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
-
-                        -- Auto-Hit
                         for _, part in pairs(myChar:GetChildren()) do
                             if part:IsA("Tool") or part:IsA("Part") then
                                 pcall(function()
@@ -65,7 +68,7 @@ task.spawn(function()
     end
 end)
 
---// Fly Funktion
+--// Fly Setup
 local flying = false
 local speed = 50
 
@@ -94,7 +97,6 @@ flyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
---// Kamerabasiertes Fliegen
 RunService.Heartbeat:Connect(function()
     if flying then
         local cam = workspace.CurrentCamera
@@ -105,6 +107,43 @@ RunService.Heartbeat:Connect(function()
             bv.Velocity = direction * speed
         else
             bv.Velocity = Vector3.zero
+        end
+    end
+end)
+
+--// Auto Hit (dauerhaft schlagen)
+local autoHit = false
+autoHitBtn.MouseButton1Click:Connect(function()
+    autoHit = not autoHit
+    autoHitBtn.Text = "Auto Hit: " .. (autoHit and "ON" or "OFF")
+end)
+
+task.spawn(function()
+    while true do
+        if autoHit then
+            local tool = char:FindFirstChildWhichIsA("Tool")
+            if tool and tool:FindFirstChild("Handle") then
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") and obj.Name:lower():find("dummy") then
+                        pcall(function()
+                            firetouchinterest(tool.Handle, obj, 0)
+                            firetouchinterest(tool.Handle, obj, 1)
+                        end)
+                    end
+                end
+            end
+        end
+        task.wait(0.2)
+    end
+end)
+
+--// Hitbox TP (nur die Hitbox des Jungle Rocks vor dich)
+hitboxBtn.MouseButton1Click:Connect(function()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:lower():find("jungle") and obj.Name:lower():find("rock") then
+            -- Teleportiere nur die Hitbox (BasePart)
+            obj.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
+            break
         end
     end
 end)
