@@ -1,31 +1,110 @@
---// UI erstellen
-local ScreenGui = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local AutoKillButton = Instance.new("TextButton")
-local FlyButton = Instance.new("TextButton")
-
-local player = game.Players.LocalPlayer
+--// Services & Player
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
 local humanoid = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
 
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
-ScreenGui.Name = "MuscleLegendsUI"
+--// UI erstellen
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "MuscleLegendsUI"
 
-Frame.Size = UDim2.new(0, 220, 0, 160)
-Frame.Position = UDim2.new(0, 50, 0, 100)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.Parent = ScreenGui
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 220, 0, 160)
+frame.Position = UDim2.new(0, 50, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 
--- AutoKill Button
-AutoKillButton.Size = UDim2.new(0, 200, 0, 50)
-AutoKillButton.Position = UDim2.new(0, 10, 0, 15)
-AutoKillButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-AutoKillButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoKillButton.Text = "AutoKill: OFF"
-AutoKillButton.Parent = Frame
+local autoKillBtn = Instance.new("TextButton", frame)
+autoKillBtn.Size = UDim2.new(0, 200, 0, 50)
+autoKillBtn.Position = UDim2.new(0, 10, 0, 15)
+autoKillBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+autoKillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoKillBtn.Text = "AutoKill: OFF"
 
--- Fly Button
-FlyButton.Size = UDim2.new(0, 200, 0, 50)
-FlyButton.Position = UDim2.new(0, 10, 0, 85)
-FlyButton.BackgroundColor3 = Color3.fromRGB(50, 
+local flyBtn = Instance.new("TextButton", frame)
+flyBtn.Size = UDim2.new(0, 200, 0, 50)
+flyBtn.Position = UDim2.new(0, 10, 0, 85)
+flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+flyBtn.TextColor3 = Color3.new(1, 1, 1)
+flyBtn.Text = "Fly: OFF"
+
+--// AutoKill + AutoPunch
+local autoKill = false
+autoKillBtn.MouseButton1Click:Connect(function()
+    autoKill = not autoKill
+    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
+end)
+
+task.spawn(function()
+    while true do
+        if autoKill and player.Character then
+            local myChar = player.Character
+            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local enemy = plr.Character
+                    local root = enemy:FindFirstChild("HumanoidRootPart")
+                    if root and myRoot then
+                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
+
+                        -- Auto-Hit
+                        for _, part in pairs(myChar:GetChildren()) do
+                            if part:IsA("Tool") or part:IsA("Part") then
+                                pcall(function()
+                                    firetouchinterest(part, root, 0)
+                                    firetouchinterest(part, root, 1)
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+end)
+
+--// Fly Funktion
+local flying = false
+local speed = 50
+
+local bv = Instance.new("BodyVelocity")
+bv.Velocity = Vector3.zero
+bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+bv.Name = "FlyVelocity"
+
+local bg = Instance.new("BodyGyro")
+bg.P = 9e4
+bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+bg.Name = "FlyGyro"
+
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        bv.Parent = hrp
+        bg.Parent = hrp
+        flyBtn.Text = "Fly: ON"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    else
+        bv.Parent = nil
+        bg.Parent = nil
+        flyBtn.Text = "Fly: OFF"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end
+end)
+
+--// Kamerabasiertes Fliegen
+RunService.Heartbeat:Connect(function()
+    if flying then
+        local cam = workspace.CurrentCamera
+        bg.CFrame = cam.CFrame
+        local moveVec = humanoid.MoveDirection
+        if moveVec.Magnitude > 0 then
+            local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
+            bv.Velocity = direction * speed
+        else
+            bv.Velocity = Vector3.zero
+        end
+    end
+end)
