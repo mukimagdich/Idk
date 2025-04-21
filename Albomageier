@@ -1,173 +1,191 @@
---// Services & Player
+-- Muscle Legends Script mit AutoKill 1, AutoKill 2 und Fly 1 in einer UI
+
+-- Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+-- Player & Character
 local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
-local hrp = char:WaitForChild("HumanoidRootPart")
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
---// UI Setup
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "MuscleLegendsUI"
+-- Variablen
+local walkspeed = 16
+local jumpPower = 50
+local autoFarm = false
+local autoKill = false
+local fly = false
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 240, 0, 200)
-frame.Position = UDim2.new(0, 30, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
+-- UI erstellen
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "AlbomageierUI"
 
-local function createButton(name, yPos)
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0, 220, 0, 45)
-    btn.Position = UDim2.new(0, 10, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Text = name .. ": OFF"
-    btn.TextScaled = true
-    btn.Font = Enum.Font.GothamBold
-    return btn
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 300, 0, 200)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+
+local titleLabel = Instance.new("TextLabel", frame)
+titleLabel.Size = UDim2.new(1, 0, 0.2, 0)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Albomageier"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+
+local autoKillButton = Instance.new("TextButton", frame)
+autoKillButton.Size = UDim2.new(1, 0, 0.2, 0)
+autoKillButton.Position = UDim2.new(0, 0, 0.2, 0)
+autoKillButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+autoKillButton.Text = "Toggle AutoKill 1"
+autoKillButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoKillButton.TextScaled = true
+autoKillButton.Font = Enum.Font.GothamBold
+
+local autoKill2Button = Instance.new("TextButton", frame)
+autoKill2Button.Size = UDim2.new(1, 0, 0.2, 0)
+autoKill2Button.Position = UDim2.new(0, 0, 0.4, 0)
+autoKill2Button.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+autoKill2Button.Text = "Toggle AutoKill 2"
+autoKill2Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoKill2Button.TextScaled = true
+autoKill2Button.Font = Enum.Font.GothamBold
+
+local flyButton = Instance.new("TextButton", frame)
+flyButton.Size = UDim2.new(1, 0, 0.2, 0)
+flyButton.Position = UDim2.new(0, 0, 0.6, 0)
+flyButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+flyButton.Text = "Toggle Fly 1"
+flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyButton.TextScaled = true
+flyButton.Font = Enum.Font.GothamBold
+
+-- Funktionen erstellen
+
+local function onWalk(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        local movement = input.KeyCode
+        if movement == Enum.KeyCode.W then
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame + (game.Workspace.World.CFrame * Vector3.new(0, 0, walkspeed / 100))
+        elseif movement == Enum.KeyCode.S then
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame - (game.Workspace.World.CFrame * Vector3.new(0, 0, walkspeed / 100))
+        elseif movement == Enum.KeyCode.A then
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame - (game.Workspace.World.CFrame * Vector3.new(walkspeed / 100, 0, 0))
+        elseif movement == Enum.KeyCode.D then
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame + (game.Workspace.World.CFrame * Vector3.new(walkspeed / 100, 0, 0))
+        end
+    end
 end
 
-local autoKill1Btn = createButton("AutoKill 1", 10)
-local flyBtn = createButton("Fly", 65)
-local autoKill2Btn = createButton("AutoKill 2", 120)
-
---// AutoKill 1 (klassisch)
-local autoKill1 = false
-autoKill1Btn.MouseButton1Click:Connect(function()
-    autoKill1 = not autoKill1
-    autoKill1Btn.Text = "AutoKill 1: " .. (autoKill1 and "ON" or "OFF")
-end)
-
-task.spawn(function()
-    while true do
-        if autoKill1 and player.Character then
-            local myChar = player.Character
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local enemy = plr.Character
-                    local root = enemy:FindFirstChild("HumanoidRootPart")
-                    if root and myRoot then
-                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
-                        for _, part in pairs(myChar:GetChildren()) do
-                            if part:IsA("Tool") or part:IsA("Part") then
-                                pcall(function()
-                                    firetouchinterest(part, root, 0)
-                                    firetouchinterest(part, root, 1)
-                                end)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.5)
-    end
-end)
-
---// Fly
-local flying = false
-local speed = 50
-
-local bv = Instance.new("BodyVelocity")
-bv.Velocity = Vector3.zero
-bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-bv.Name = "FlyVelocity"
-
-local bg = Instance.new("BodyGyro")
-bg.P = 9e4
-bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-bg.Name = "FlyGyro"
-
-flyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
-    if flying then
-        bv.Parent = hrp
-        bg.Parent = hrp
-        flyBtn.Text = "Fly: ON"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    else
-        bv.Parent = nil
-        bg.Parent = nil
-        flyBtn.Text = "Fly: OFF"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if flying then
-        local cam = workspace.CurrentCamera
-        bg.CFrame = cam.CFrame
-        local moveVec = humanoid.MoveDirection
-        if moveVec.Magnitude > 0 then
-            local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
-            bv.Velocity = direction * speed
-        else
-            bv.Velocity = Vector3.zero
-        end
-    end
-end)
-
---// AutoKill 2 (Bewegung & Raycast)
-local autoKill2 = false
-autoKill2Btn.MouseButton1Click:Connect(function()
-    autoKill2 = not autoKill2
-    autoKill2Btn.Text = "AutoKill 2: " .. (autoKill2 and "ON" or "OFF")
-end)
-
--- Bewegung (WASD + Space)
-UserInputService.InputBegan:Connect(function(input)
-    if not autoKill2 then return end
+local function onJump(input)
     if input.UserInputType == Enum.UserInputType.Keyboard then
-        if input.KeyCode == Enum.KeyCode.W then
-            hrp.CFrame = hrp.CFrame + (workspace.World.CFrame * Vector3.new(0, 0, 0.16))
-        elseif input.KeyCode == Enum.KeyCode.S then
-            hrp.CFrame = hrp.CFrame - (workspace.World.CFrame * Vector3.new(0, 0, 0.16))
-        elseif input.KeyCode == Enum.KeyCode.A then
-            hrp.CFrame = hrp.CFrame - (workspace.World.CFrame * Vector3.new(0.16, 0, 0))
-        elseif input.KeyCode == Enum.KeyCode.D then
-            hrp.CFrame = hrp.CFrame + (workspace.World.CFrame * Vector3.new(0.16, 0, 0))
-        elseif input.KeyCode == Enum.KeyCode.Space then
-            hrp.Velocity = Vector3.new(0, 50, 0)
+        local movement = input.KeyCode
+        if movement == Enum.KeyCode.Space then
+            humanoidRootPart.Velocity = Vector3.new(0, jumpPower, 0)
         end
     end
-end)
+end
 
--- Angriff per Raycast prüfen
-task.spawn(function()
-    while true do
-        if autoKill2 then
-            local character = player.Character
-            if not character then continue end
-            local myRoot = character:FindFirstChild("HumanoidRootPart")
-            for _, obj in pairs(workspace:GetChildren()) do
-                if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-                    local enemy = obj
-                    if enemy ~= character then
-                        local distance = (myRoot.Position - enemy.HumanoidRootPart.Position).Magnitude
-                        if distance < 10 then
-                            local ray = Ray.new(myRoot.Position, (enemy.HumanoidRootPart.Position - myRoot.Position))
-                            local hit, pos = workspace:FindPartOnRay(ray, character)
-                            if hit then
-                                pcall(function()
-                                    local part = Instance.new("Part", workspace)
-                                    part.Anchored = true
-                                    part.CanCollide = false
-                                    part.Size = Vector3.new(1,1,1)
-                                    part.CFrame = CFrame.new(pos)
-                                    part.BrickColor = BrickColor.new("Bright blue")
-                                    part.Material = Enum.Material.Neon
-                                    part.Transparency = 0.5
-                                    game.Debris:AddItem(part, 0.5)
-                                end)
-                            end
-                        end
+local function autoFarmFunction()
+    while autoFarm do
+        local target = game.Workspace:GetChildren()[math.random(1, #game.Workspace:GetChildren())]
+        if target:FindFirstChild("Humanoid") then
+            local distance = (character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
+            if distance < 10 then
+                local raycast = Ray.new(character.HumanoidRootPart.Position, target.HumanoidRootPart.Position - character.HumanoidRootPart.Position)
+                local hit, position = workspace:FindPartBounds(raycast)
+                if hit then
+                    local part = game.Workspace:FindFirstChild("Part")
+                    if part then
+                        part.Material = Enum.Material.Neon
+                        part.BrickColor = BrickColor.new("Bright blue")
+                        part.Transparency = 0.5
+                        part.Size = Vector3.new(1, 1, 1)
+                        part.Position = position
+                        part.Anchored = true
+                        wait(1)
+                        part:Destroy()
                     end
                 end
             end
         end
         wait(0.5)
     end
+end
+
+local function autoKillFunction()
+    while autoKill do
+        local target = game.Workspace:GetChildren()[math.random(1, #game.Workspace:GetChildren())]
+        if target:FindFirstChild("Humanoid") then
+            local distance = (character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
+            if distance < 10 then
+                local raycast = Ray.new(character.HumanoidRootPart.Position, target.HumanoidRootPart.Position - character.HumanoidRootPart.Position)
+                local hit, position = workspace:FindPartBounds(raycast)
+                if hit then
+                    local part = game.Workspace:FindFirstChild("Part")
+                    if part then
+                        part.Material = Enum.Material.Neon
+                        part.BrickColor = BrickColor.new("Bright blue")
+                        part.Transparency = 0.5
+                        part.Size = Vector3.new(1, 1, 1)
+                        part.Position = position
+                        part.Anchored = true
+                        wait(1)
+                        part:Destroy()
+                        target.Humanoid.Health = 0
+                    end
+                end
+            end
+        end
+        wait(0.5)
+    end
+end
+
+local function flyFunction()
+    while fly do
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+        bodyVelocity.Velocity = humanoidRootPart.CFrame.LookVector * walkspeed
+        bodyVelocity.Parent = humanoidRootPart
+        wait(0.1)
+        bodyVelocity:Destroy()
+    end
+end
+
+-- Buttons um AutoKill, AutoFarm und Fly zu togglen
+autoKillButton.MouseButton1Click:Connect(function()
+    autoKill = not autoKill
+    if autoKill then
+        autoKillButton.Text = "AutoKill 1: ON"
+        autoKillFunction()
+    else
+        autoKillButton.Text = "Toggle AutoKill 1"
+    end
 end)
+
+autoKill2Button.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+    if autoFarm then
+        autoKill2Button.Text = "AutoKill 2: ON"
+        autoFarmFunction()
+    else
+        autoKill2Button.Text = "Toggle AutoKill 2"
+    end
+end)
+
+flyButton.MouseButton1Click:Connect(function()
+    fly = not fly
+    if fly then
+        flyButton.Text = "Fly 1: ON"
+        flyFunction()
+    else
+        flyButton.Text = "Toggle Fly 1"
+    end
+end)
+
+-- Ereignisse hinzufügen
+UserInputService.InputBegan:Connect(onWalk)
+UserInputService.InputBegan:Connect(onJump)
