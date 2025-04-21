@@ -1,6 +1,7 @@
 --// Services & Player
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid")
@@ -11,7 +12,7 @@ local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "MuscleLegendsUI"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 240, 0, 250)
+frame.Size = UDim2.new(0, 240, 0, 200)
 frame.Position = UDim2.new(0, 30, 0, 100)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
@@ -28,35 +29,35 @@ local function createButton(name, yPos)
     return btn
 end
 
-local autoKillBtn = createButton("AutoKill", 10)
+local autoKill1Btn = createButton("AutoKill 1", 10)
 local flyBtn = createButton("Fly", 65)
 local autoKill2Btn = createButton("AutoKill 2", 120)
 
---// AutoKill 1 (mit AutoHit)
-local autoKill = false
-autoKillBtn.MouseButton1Click:Connect(function()
-    autoKill = not autoKill
-    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
+--// AutoKill 1 (klassisch)
+local autoKill1 = false
+autoKill1Btn.MouseButton1Click:Connect(function()
+    autoKill1 = not autoKill1
+    autoKill1Btn.Text = "AutoKill 1: " .. (autoKill1 and "ON" or "OFF")
 end)
 
 task.spawn(function()
     while true do
-        if autoKill and player.Character then
+        if autoKill1 and player.Character then
             local myChar = player.Character
             local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            local tool = myChar:FindFirstChildWhichIsA("Tool")
-            
             for _, plr in pairs(Players:GetPlayers()) do
                 if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local enemy = plr.Character
                     local root = enemy:FindFirstChild("HumanoidRootPart")
                     if root and myRoot then
                         root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
-                        if tool and tool:FindFirstChild("Handle") then
-                            pcall(function()
-                                firetouchinterest(tool.Handle, root, 0)
-                                firetouchinterest(tool.Handle, root, 1)
-                            end)
+                        for _, part in pairs(myChar:GetChildren()) do
+                            if part:IsA("Tool") or part:IsA("Part") then
+                                pcall(function()
+                                    firetouchinterest(part, root, 0)
+                                    firetouchinterest(part, root, 1)
+                                end)
+                            end
                         end
                     end
                 end
@@ -109,36 +110,64 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
---// AutoKill 2 (separat)
+--// AutoKill 2 (Bewegung & Raycast)
 local autoKill2 = false
 autoKill2Btn.MouseButton1Click:Connect(function()
     autoKill2 = not autoKill2
     autoKill2Btn.Text = "AutoKill 2: " .. (autoKill2 and "ON" or "OFF")
 end)
 
+-- Bewegung (WASD + Space)
+UserInputService.InputBegan:Connect(function(input)
+    if not autoKill2 then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.W then
+            hrp.CFrame = hrp.CFrame + (workspace.World.CFrame * Vector3.new(0, 0, 0.16))
+        elseif input.KeyCode == Enum.KeyCode.S then
+            hrp.CFrame = hrp.CFrame - (workspace.World.CFrame * Vector3.new(0, 0, 0.16))
+        elseif input.KeyCode == Enum.KeyCode.A then
+            hrp.CFrame = hrp.CFrame - (workspace.World.CFrame * Vector3.new(0.16, 0, 0))
+        elseif input.KeyCode == Enum.KeyCode.D then
+            hrp.CFrame = hrp.CFrame + (workspace.World.CFrame * Vector3.new(0.16, 0, 0))
+        elseif input.KeyCode == Enum.KeyCode.Space then
+            hrp.Velocity = Vector3.new(0, 50, 0)
+        end
+    end
+end)
+
+-- Angriff per Raycast prüfen
 task.spawn(function()
     while true do
-        if autoKill2 and player.Character then
-            local myChar = player.Character
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            local tool = myChar:FindFirstChildWhichIsA("Tool")
-            
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local enemy = plr.Character
-                    local root = enemy:FindFirstChild("HumanoidRootPart")
-                    if root and myRoot then
-                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
-                        if tool and tool:FindFirstChild("Handle") then
-                            pcall(function()
-                                firetouchinterest(tool.Handle, root, 0)
-                                firetouchinterest(tool.Handle, root, 1)
-                            end)
+        if autoKill2 then
+            local character = player.Character
+            if not character then continue end
+            local myRoot = character:FindFirstChild("HumanoidRootPart")
+            for _, obj in pairs(workspace:GetChildren()) do
+                if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+                    local enemy = obj
+                    if enemy ~= character then
+                        local distance = (myRoot.Position - enemy.HumanoidRootPart.Position).Magnitude
+                        if distance < 10 then
+                            local ray = Ray.new(myRoot.Position, (enemy.HumanoidRootPart.Position - myRoot.Position))
+                            local hit, pos = workspace:FindPartOnRay(ray, character)
+                            if hit then
+                                pcall(function()
+                                    local part = Instance.new("Part", workspace)
+                                    part.Anchored = true
+                                    part.CanCollide = false
+                                    part.Size = Vector3.new(1,1,1)
+                                    part.CFrame = CFrame.new(pos)
+                                    part.BrickColor = BrickColor.new("Bright blue")
+                                    part.Material = Enum.Material.Neon
+                                    part.Transparency = 0.5
+                                    game.Debris:AddItem(part, 0.5)
+                                end)
+                            end
                         end
                     end
                 end
             end
         end
-        task.wait(0.5)
+        wait(0.5)
     end
 end)
