@@ -1,65 +1,65 @@
---// UI erstellen
+--// Services
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local UIS = game:GetService("UserInputService")
 
-local auraEnabled = false
-local auraRange = 20 -- Standardreichweite
+--// Einstellungen
+local auraEnabled = true
+local auraRange = 25
+local attackOffset = Vector3.new(0, 3, -3)
 
--- UI
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 200, 0, 150)
-Frame.Position = UDim2.new(0, 50, 0, 100)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.BorderSizePixel = 0
+--// UI
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local rangeBox = Instance.new("TextBox", gui)
+rangeBox.Size = UDim2.new(0, 200, 0, 30)
+rangeBox.Position = UDim2.new(0, 50, 0, 100)
+rangeBox.PlaceholderText = "Kill Aura Range (z. B. 25)"
+rangeBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+rangeBox.TextColor3 = Color3.new(1, 1, 1)
 
-local ToggleButton = Instance.new("TextButton", Frame)
-ToggleButton.Size = UDim2.new(1, 0, 0, 30)
-ToggleButton.Position = UDim2.new(0, 0, 0, 0)
-ToggleButton.Text = "Kill Aura: OFF"
-ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-ToggleButton.TextColor3 = Color3.new(1, 1, 1)
-
-local RangeBox = Instance.new("TextBox", Frame)
-RangeBox.Size = UDim2.new(1, 0, 0, 30)
-RangeBox.Position = UDim2.new(0, 0, 0, 40)
-RangeBox.PlaceholderText = "Kill Aura Range (z. B. 20)"
-RangeBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-RangeBox.TextColor3 = Color3.new(1, 1, 1)
-
--- Toggle Funktion
-ToggleButton.MouseButton1Click:Connect(function()
-    auraEnabled = not auraEnabled
-    ToggleButton.Text = "Kill Aura: " .. (auraEnabled and "ON" or "OFF")
-end)
-
--- Range setzen
-RangeBox.FocusLost:Connect(function()
-    local val = tonumber(RangeBox.Text)
+rangeBox.FocusLost:Connect(function()
+    local val = tonumber(rangeBox.Text)
     if val and val > 0 then
         auraRange = val
+        if auraVisual then
+            auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+        end
     end
 end)
 
--- Kill Aura Funktion
-task.spawn(function()
-    while true do
-        if auraEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    local targetHRP = player.Character.HumanoidRootPart
-                    local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if myHRP and (myHRP.Position - targetHRP.Position).Magnitude <= auraRange then
-                        -- Schlag auslösen
-                        local args = {
-                            [1] = player.Character
-                        }
-                        game:GetService("ReplicatedStorage").rEvents.hitRemote:FireServer(unpack(args))
-                    end
+--// Visuelle Kill-Aura erstellen
+local auraVisual = Instance.new("Part")
+auraVisual.Shape = Enum.PartType.Ball
+auraVisual.Anchored = true
+auraVisual.CanCollide = false
+auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+auraVisual.Color = Color3.fromRGB(255, 0, 0)
+auraVisual.Transparency = 0.6
+auraVisual.Material = Enum.Material.ForceField
+auraVisual.Parent = workspace
+
+--// Kill Aura Funktion
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    if auraEnabled and char and char:FindFirstChild("HumanoidRootPart") then
+        local myHRP = char.HumanoidRootPart
+        auraVisual.Position = myHRP.Position
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local targetHRP = player.Character.HumanoidRootPart
+                local dist = (myHRP.Position - targetHRP.Position).Magnitude
+
+                if dist <= auraRange then
+                    -- Gegner-Hitbox unauffällig teleportieren
+                    local newPos = myHRP.CFrame:ToWorldSpace(CFrame.new(attackOffset)).Position
+                    targetHRP.CFrame = CFrame.new(newPos) * CFrame.Angles(0, math.rad(math.random(0,360)), 0)
+
+                    -- Hit auslösen
+                    ReplicatedStorage.rEvents.hitRemote:FireServer(player.Character)
                 end
             end
         end
-        task.wait(0.1)
     end
 end)
