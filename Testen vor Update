@@ -4,40 +4,47 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
---// Einstellungen
+--// Variablen
 local auraEnabled = true
 local auraRange = 25
 local attackOffset = Vector3.new(0, 3, -3)
 
 --// UI
 local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "AuraUI"
+
 local rangeBox = Instance.new("TextBox", gui)
 rangeBox.Size = UDim2.new(0, 200, 0, 30)
 rangeBox.Position = UDim2.new(0, 50, 0, 100)
-rangeBox.PlaceholderText = "Kill Aura Range (z. B. 25)"
+rangeBox.PlaceholderText = "Aura Range (z. B. 25)"
 rangeBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 rangeBox.TextColor3 = Color3.new(1, 1, 1)
+rangeBox.Text = ""
 
-rangeBox.FocusLost:Connect(function()
-    local val = tonumber(rangeBox.Text)
-    if val and val > 0 then
-        auraRange = val
-        if auraVisual then
-            auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
-        end
-    end
-end)
-
---// Visuelle Kill-Aura erstellen
+--// Aura Visual erstellen
 local auraVisual = Instance.new("Part")
 auraVisual.Shape = Enum.PartType.Ball
 auraVisual.Anchored = true
 auraVisual.CanCollide = false
-auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
-auraVisual.Color = Color3.fromRGB(255, 0, 0)
 auraVisual.Transparency = 0.6
+auraVisual.Color = Color3.fromRGB(255, 0, 0)
 auraVisual.Material = Enum.Material.ForceField
+auraVisual.Name = "KillAuraVisual"
 auraVisual.Parent = workspace
+auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+
+--// Update Visual bei Änderung
+local function updateAuraSize(newRange)
+    auraRange = newRange
+    auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+end
+
+rangeBox.FocusLost:Connect(function()
+    local val = tonumber(rangeBox.Text)
+    if val and val > 0 then
+        updateAuraSize(val)
+    end
+end)
 
 --// Kill Aura Funktion
 RunService.Heartbeat:Connect(function()
@@ -52,7 +59,7 @@ RunService.Heartbeat:Connect(function()
                 local dist = (myHRP.Position - targetHRP.Position).Magnitude
 
                 if dist <= auraRange then
-                    -- Gegner-Hitbox unauffällig teleportieren
+                    -- Hitbox unsichtbar zu dir vor verschieben
                     local newPos = myHRP.CFrame:ToWorldSpace(CFrame.new(attackOffset)).Position
                     targetHRP.CFrame = CFrame.new(newPos) * CFrame.Angles(0, math.rad(math.random(0,360)), 0)
 
