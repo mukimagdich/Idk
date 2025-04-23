@@ -1,226 +1,102 @@
---// Services & Player
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
+-- Auto Lift Script mit UI für Muscle Legends
 
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
-local hrp = char:WaitForChild("HumanoidRootPart")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local backpack = character:WaitForChild("Backpack")
+local trainingDelay = 2  -- Zeit in Sekunden zwischen den Wiederholungen
 
---// UI erstellen
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "MuscleLegendsUI"
+-- Erstelle das GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+screenGui.Name = "AutoLiftGUI"
 
---// Frame
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 300, 0, 220)
-frame.Position = UDim2.new(0.5, -150, 0.5, -110)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
-frame.BackgroundTransparency = 0.15
-frame.ClipsDescendants = true
+local frame = Instance.new("Frame")
+frame.Parent = screenGui
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0.5
 
---// UICorner für das Frame
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 12)
-
---// Titel-Label
-local titleLabel = Instance.new("TextLabel", frame)
-titleLabel.Size = UDim2.new(0, 300, 0, 50)
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Parent = frame
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
 titleLabel.Position = UDim2.new(0, 0, 0, 0)
-titleLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleLabel.Text = "Auto Lift"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.Text = "Muscle Legends Script"
-titleLabel.TextSize = 20
-titleLabel.TextStrokeTransparency = 0.8
-titleLabel.TextAlign = Enum.TextAlign.Center
-titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 18
+titleLabel.TextAlignment = Enum.TextAlignment.Center
 
---// Buttons
-local autoKillBtn = Instance.new("TextButton", frame)
-autoKillBtn.Size = UDim2.new(0, 260, 0, 40)
-autoKillBtn.Position = UDim2.new(0, 20, 0, 60)
-autoKillBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-autoKillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoKillBtn.Text = "AutoKill: OFF"
-autoKillBtn.Font = Enum.Font.Gotham
-autoKillBtn.TextSize = 18
+local startButton = Instance.new("TextButton")
+startButton.Parent = frame
+startButton.Size = UDim2.new(1, 0, 0, 40)
+startButton.Position = UDim2.new(0, 0, 0, 40)
+startButton.Text = "Start Auto Lift"
+startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+startButton.BackgroundColor3 = Color3.fromRGB(0, 128, 0)
 
-local flyBtn = Instance.new("TextButton", frame)
-flyBtn.Size = UDim2.new(0, 260, 0, 40)
-flyBtn.Position = UDim2.new(0, 20, 0, 110)
-flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyBtn.Text = "Fly: OFF"
-flyBtn.Font = Enum.Font.Gotham
-flyBtn.TextSize = 18
+local stopButton = Instance.new("TextButton")
+stopButton.Parent = frame
+stopButton.Size = UDim2.new(1, 0, 0, 40)
+stopButton.Position = UDim2.new(0, 0, 0, 80)
+stopButton.Text = "Stop Auto Lift"
+stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 
-local autoKill2Btn = Instance.new("TextButton", frame)
-autoKill2Btn.Size = UDim2.new(0, 260, 0, 40)
-autoKill2Btn.Position = UDim2.new(0, 20, 0, 160)
-autoKill2Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-autoKill2Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoKill2Btn.Text = "AutoKill 2: OFF"
-autoKill2Btn.Font = Enum.Font.Gotham
-autoKill2Btn.TextSize = 18
+local autoLiftActive = false
 
---// Minimieren Button (Auge-Icon)
-local minimizeBtn = Instance.new("TextButton", gui)
-minimizeBtn.Size = UDim2.new(0, 40, 0, 40)
-minimizeBtn.Position = UDim2.new(0.5, 140, 0.5, -105)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeBtn.Text = "👁"
-minimizeBtn.Font = Enum.Font.Gotham
-minimizeBtn.TextSize = 24
-minimizeBtn.Visible = true
-
---// UI verstecken oder anzeigen
-local isMinimized = false
-local function toggleUI()
-    isMinimized = not isMinimized
-    frame.Visible = not isMinimized
-    minimizeBtn.Text = isMinimized and "👁" or "⬆"
+-- Funktion zum Finden der Hantel
+local function findBarbell()
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj.Name == "Barbell" and obj:IsA("Model") then
+            return obj
+        end
+    end
+    return nil
 end
 
-minimizeBtn.MouseButton1Click:Connect(toggleUI)
+-- Funktion, um die Hantel zu greifen und zu heben
+local function autoLift()
+    local barbell = findBarbell()
+    if barbell then
+        -- Setze den Spieler an die Hantel
+        character:SetPrimaryPartCFrame(barbell.PrimaryPart.CFrame)
+        
+        -- Greift die Hantel
+        local handle = barbell:FindFirstChild("Handle")
+        if handle then
+            humanoid:EquipTool(handle)
+            wait(0.5)  -- Warte, damit die Hantel korrekt gegriffen wird
 
---// AutoKill 1
-local autoKill = false
-autoKillBtn.MouseButton1Click:Connect(function()
-    autoKill = not autoKill
-    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
-    if autoKill then
-        autoKill2 = false
-        autoKill2Btn.Text = "AutoKill 2: OFF"
-        autoKill2Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    end
-end)
+            -- Hantel heben (simuliert durch eine einfache Position)
+            humanoid:MoveTo(barbell.Position)
+            wait(trainingDelay)  -- Warte, bevor der Vorgang wiederholt wird
 
-task.spawn(function()
-    while true do
-        if autoKill and player.Character then
-            local myChar = player.Character
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local enemy = plr.Character
-                    local root = enemy:FindFirstChild("HumanoidRootPart")
-                    if root and myRoot then
-                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
-
-                        local myTool = myChar:FindFirstChildOfClass("Tool")
-                        if myTool and myTool:FindFirstChild("Handle") then
-                            pcall(function()
-                                firetouchinterest(myTool.Handle, root, 0)
-                                firetouchinterest(myTool.Handle, root, 1)
-                            end)
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.5)
-    end
-end)
-
---// AutoKill 2
-local autoKill2 = false
-local moveDir = Vector3.zero
-
-autoKill2Btn.MouseButton1Click:Connect(function()
-    autoKill2 = not autoKill2
-    autoKill2Btn.Text = "AutoKill 2: " .. (autoKill2 and "ON" or "OFF")
-    autoKill2Btn.BackgroundColor3 = autoKill2 and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(50, 50, 50)
-    if autoKill2 then
-        autoKill = false
-        autoKillBtn.Text = "AutoKill: OFF"
-    end
-end)
-
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.W then moveDir = Vector3.new(0, 0, -1) end
-    if input.KeyCode == Enum.KeyCode.S then moveDir = Vector3.new(0, 0, 1) end
-    if input.KeyCode == Enum.KeyCode.A then moveDir = Vector3.new(-1, 0, 0) end
-    if input.KeyCode == Enum.KeyCode.D then moveDir = Vector3.new(1, 0, 0) end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.W or input.KeyCode == Enum.KeyCode.S or input.KeyCode == Enum.KeyCode.A or input.KeyCode == Enum.KeyCode.D then
-        moveDir = Vector3.zero
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if autoKill2 and hrp and moveDir.Magnitude > 0 then
-            local cam = workspace.CurrentCamera
-            local dir = cam.CFrame:VectorToWorldSpace(moveDir).Unit
-            hrp.CFrame = hrp.CFrame + dir * 1.5
-
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local targetRoot = plr.Character.HumanoidRootPart
-                    local origin = hrp.Position
-                    local direction = (targetRoot.Position - origin).Unit * 10
-                    local ray = workspace:Raycast(origin, direction, RaycastParams.new())
-                    if ray and ray.Instance and ray.Instance:IsDescendantOf(plr.Character) then
-                        local myTool = player.Character:FindFirstChildOfClass("Tool")
-                        if myTool and myTool:FindFirstChild("Handle") then
-                            pcall(function()
-                                firetouchinterest(myTool.Handle, targetRoot, 0)
-                                firetouchinterest(myTool.Handle, targetRoot, 1)
-                            end)
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.1)
-    end
-end)
-
---// Fly
-local flying = false
-local speed = 50
-
-local bv = Instance.new("BodyVelocity")
-bv.Velocity = Vector3.zero
-bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-bv.Name = "FlyVelocity"
-
-local bg = Instance.new("BodyGyro")
-bg.P = 9e4
-bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-bg.Name = "FlyGyro"
-
-flyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
-    if flying then
-        bv.Parent = hrp
-        bg.Parent = hrp
-        flyBtn.Text = "Fly: ON"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    else
-        bv.Parent = nil
-        bg.Parent = nil
-        flyBtn.Text = "Fly: OFF"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if flying then
-        local cam = workspace.CurrentCamera
-        bg.CFrame = cam.CFrame
-        local moveVec = humanoid.MoveDirection
-        if moveVec.Magnitude > 0 then
-            local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
-            bv.Velocity = direction * speed
-        else
-            bv.Velocity = Vector3.zero
+            -- Hantel ablegen
+            humanoid:UnequipTools()
         end
     end
+end
+
+-- Start-Button: Auto Lift aktivieren
+startButton.MouseButton1Click:Connect(function()
+    autoLiftActive = true
+    startButton.Text = "Auto Lift Aktiviert"
+    startButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Grün wenn aktiv
+    stopButton.Visible = true  -- Stop-Button sichtbar machen
+    while autoLiftActive do
+        autoLift()
+        wait(trainingDelay)
+    end
 end)
+
+-- Stop-Button: Auto Lift deaktivieren
+stopButton.MouseButton1Click:Connect(function()
+    autoLiftActive = false
+    startButton.Text = "Start Auto Lift"
+    startButton.BackgroundColor3 = Color3.fromRGB(0, 128, 0)  -- Zurück zu grün
+    stopButton.Visible = false  -- Stop-Button unsichtbar machen
+end)
+
+-- Stop-Button ist anfangs unsichtbar
+stopButton.Visible = false
