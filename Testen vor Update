@@ -1,129 +1,65 @@
---// Services & Player
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
-local hrp = char:WaitForChild("HumanoidRootPart")
-
 --// UI erstellen
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "MuscleLegendsUI"
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 220, 0, 160)
-frame.Position = UDim2.new(0, 50, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.Active = true
-frame.Draggable = true
+local auraEnabled = false
+local auraRange = 20 -- Standardreichweite
 
-local autoKillBtn = Instance.new("TextButton", frame)
-autoKillBtn.Size = UDim2.new(0, 200, 0, 50)
-autoKillBtn.Position = UDim2.new(0, 10, 0, 15)
-autoKillBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-autoKillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoKillBtn.Text = "AutoKill: OFF"
+-- UI
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 200, 0, 150)
+Frame.Position = UDim2.new(0, 50, 0, 100)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
 
-local flyBtn = Instance.new("TextButton", frame)
-flyBtn.Size = UDim2.new(0, 200, 0, 50)
-flyBtn.Position = UDim2.new(0, 10, 0, 85)
-flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-flyBtn.TextColor3 = Color3.new(1, 1, 1)
-flyBtn.Text = "Fly: OFF"
+local ToggleButton = Instance.new("TextButton", Frame)
+ToggleButton.Size = UDim2.new(1, 0, 0, 30)
+ToggleButton.Position = UDim2.new(0, 0, 0, 0)
+ToggleButton.Text = "Kill Aura: OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
 
---// Toggle Button für Sichtbarkeit (Auge-Button)
-local eyeBtn = Instance.new("TextButton", gui)
-eyeBtn.Size = UDim2.new(0, 40, 0, 40)
-eyeBtn.Position = UDim2.new(1, -50, 0, 10)
-eyeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-eyeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-eyeBtn.Text = "👁️"  -- Das Auge-Icon
-eyeBtn.Font = Enum.Font.SourceSans
-eyeBtn.TextSize = 30
+local RangeBox = Instance.new("TextBox", Frame)
+RangeBox.Size = UDim2.new(1, 0, 0, 30)
+RangeBox.Position = UDim2.new(0, 0, 0, 40)
+RangeBox.PlaceholderText = "Kill Aura Range (z. B. 20)"
+RangeBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+RangeBox.TextColor3 = Color3.new(1, 1, 1)
 
---// UI sichtbar/unsichtbar schalten
-local uiVisible = true
-eyeBtn.MouseButton1Click:Connect(function()
-    uiVisible = not uiVisible
-    frame.Visible = uiVisible
+-- Toggle Funktion
+ToggleButton.MouseButton1Click:Connect(function()
+    auraEnabled = not auraEnabled
+    ToggleButton.Text = "Kill Aura: " .. (auraEnabled and "ON" or "OFF")
 end)
 
---// AutoKill + AutoPunch
-local autoKill = false
-autoKillBtn.MouseButton1Click:Connect(function()
-    autoKill = not autoKill
-    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
+-- Range setzen
+RangeBox.FocusLost:Connect(function()
+    local val = tonumber(RangeBox.Text)
+    if val and val > 0 then
+        auraRange = val
+    end
 end)
 
+-- Kill Aura Funktion
 task.spawn(function()
     while true do
-        if autoKill and player.Character then
-            local myChar = player.Character
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local enemy = plr.Character
-                    local root = enemy:FindFirstChild("HumanoidRootPart")
-                    if root and myRoot then
-                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
-
-                        -- Auto-Hit
-                        for _, part in pairs(myChar:GetChildren()) do
-                            if part:IsA("Tool") or part:IsA("Part") then
-                                pcall(function()
-                                    firetouchinterest(part, root, 0)
-                                    firetouchinterest(part, root, 1)
-                                end)
-                            end
-                        end
+        if auraEnabled then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local targetHRP = player.Character.HumanoidRootPart
+                    local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if myHRP and (myHRP.Position - targetHRP.Position).Magnitude <= auraRange then
+                        -- Schlag auslösen
+                        local args = {
+                            [1] = player.Character
+                        }
+                        game:GetService("ReplicatedStorage").rEvents.hitRemote:FireServer(unpack(args))
                     end
                 end
             end
         end
-        task.wait(0.5)
-    end
-end)
-
---// Fly Funktion
-local flying = false
-local speed = 50
-
-local bv = Instance.new("BodyVelocity")
-bv.Velocity = Vector3.zero
-bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-bv.Name = "FlyVelocity"
-
-local bg = Instance.new("BodyGyro")
-bg.P = 9e4
-bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-bg.Name = "FlyGyro"
-
-flyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
-    if flying then
-        bv.Parent = hrp
-        bg.Parent = hrp
-        flyBtn.Text = "Fly: ON"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    else
-        bv.Parent = nil
-        bg.Parent = nil
-        flyBtn.Text = "Fly: OFF"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    end
-end)
-
---// Kamerabasiertes Fliegen
-RunService.Heartbeat:Connect(function()
-    if flying then
-        local cam = workspace.CurrentCamera
-        bg.CFrame = cam.CFrame
-        local moveVec = humanoid.MoveDirection
-        if moveVec.Magnitude > 0 then
-            local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
-            bv.Velocity = direction * speed
-        else
-            bv.Velocity = Vector3.zero
-        end
+        task.wait(0.1)
     end
 end)
