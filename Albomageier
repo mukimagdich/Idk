@@ -14,6 +14,8 @@ local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 220, 0, 160)
 frame.Position = UDim2.new(0, 50, 0, 100)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
 
 local autoKillBtn = Instance.new("TextButton", frame)
 autoKillBtn.Size = UDim2.new(0, 200, 0, 50)
@@ -28,6 +30,23 @@ flyBtn.Position = UDim2.new(0, 10, 0, 85)
 flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
 flyBtn.TextColor3 = Color3.new(1, 1, 1)
 flyBtn.Text = "Fly: OFF"
+
+--// Toggle Button für Sichtbarkeit (Auge-Button)
+local eyeBtn = Instance.new("TextButton", gui)
+eyeBtn.Size = UDim2.new(0, 40, 0, 40)
+eyeBtn.Position = UDim2.new(1, -50, 0, 10)
+eyeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+eyeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+eyeBtn.Text = "👁️"  -- Das Auge-Icon
+eyeBtn.Font = Enum.Font.SourceSans
+eyeBtn.TextSize = 30
+
+--// UI sichtbar/unsichtbar schalten
+local uiVisible = true
+eyeBtn.MouseButton1Click:Connect(function()
+    uiVisible = not uiVisible
+    frame.Visible = uiVisible
+end)
 
 --// AutoKill + AutoPunch
 local autoKill = false
