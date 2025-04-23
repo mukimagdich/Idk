@@ -12,6 +12,7 @@ local hrp = char:WaitForChild("HumanoidRootPart")
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "MuscleLegendsUI"
 
+--// Frame
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 300, 0, 220)
 frame.Position = UDim2.new(0.5, -150, 0.5, -110)
@@ -20,9 +21,11 @@ frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.15
 frame.ClipsDescendants = true
 
+--// UICorner für das Frame
 local corner = Instance.new("UICorner", frame)
 corner.CornerRadius = UDim.new(0, 12)
 
+--// Titel-Label
 local titleLabel = Instance.new("TextLabel", frame)
 titleLabel.Size = UDim2.new(0, 300, 0, 50)
 titleLabel.Position = UDim2.new(0, 0, 0, 0)
@@ -61,6 +64,27 @@ autoKill2Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 autoKill2Btn.Text = "AutoKill 2: OFF"
 autoKill2Btn.Font = Enum.Font.Gotham
 autoKill2Btn.TextSize = 18
+
+--// Minimieren Button (Auge-Icon)
+local minimizeBtn = Instance.new("TextButton", gui)
+minimizeBtn.Size = UDim2.new(0, 40, 0, 40)
+minimizeBtn.Position = UDim2.new(0.5, 140, 0.5, -105)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.Text = "👁"
+minimizeBtn.Font = Enum.Font.Gotham
+minimizeBtn.TextSize = 24
+minimizeBtn.Visible = true
+
+--// UI verstecken oder anzeigen
+local isMinimized = false
+local function toggleUI()
+    isMinimized = not isMinimized
+    frame.Visible = not isMinimized
+    minimizeBtn.Text = isMinimized and "👁" or "⬆"
+end
+
+minimizeBtn.MouseButton1Click:Connect(toggleUI)
 
 --// AutoKill 1
 local autoKill = false
