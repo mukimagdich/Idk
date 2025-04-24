@@ -12,68 +12,72 @@ local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "MuscleLegendsUI"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 220, 0, 270)
+frame.Size = UDim2.new(0, 240, 0, 320)
 frame.Position = UDim2.new(0, 50, 0, 100)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Active = true
 frame.Draggable = true
 
---// Toggle-Buttons
-local autoKillBtn = Instance.new("TextButton", frame)
+-- Tabs
+local tabs = {
+    AutoKill = Instance.new("TextButton", frame),
+    Fly = Instance.new("TextButton", frame),
+    Allgemein = Instance.new("TextButton", frame)
+}
+
+local contentFrames = {}
+
+local function createTab(name, order)
+    local btn = tabs[name]
+    btn.Size = UDim2.new(0, 75, 0, 30)
+    btn.Position = UDim2.new(0, 10 + (order - 1) * 80, 0, 10)
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+
+    local content = Instance.new("Frame", frame)
+    content.Name = name .. "Content"
+    content.Size = UDim2.new(1, -20, 1, -50)
+    content.Position = UDim2.new(0, 10, 0, 45)
+    content.BackgroundTransparency = 1
+    content.Visible = order == 1
+    contentFrames[name] = content
+
+    btn.MouseButton1Click:Connect(function()
+        for tabName, f in pairs(contentFrames) do
+            f.Visible = tabName == name
+        end
+    end)
+end
+
+createTab("AutoKill", 1)
+createTab("Fly", 2)
+createTab("Allgemein", 3)
+
+-- Tab: AutoKill
+local autoKillBtn = Instance.new("TextButton", contentFrames.AutoKill)
 autoKillBtn.Size = UDim2.new(0, 200, 0, 40)
 autoKillBtn.Position = UDim2.new(0, 10, 0, 10)
 autoKillBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 autoKillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 autoKillBtn.Text = "AutoKill: OFF"
 
-local flyBtn = Instance.new("TextButton", frame)
-flyBtn.Size = UDim2.new(0, 200, 0, 40)
-flyBtn.Position = UDim2.new(0, 10, 0, 60)
-flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-flyBtn.TextColor3 = Color3.new(1, 1, 1)
-flyBtn.Text = "Fly: OFF"
-
-local auraBtn = Instance.new("TextButton", frame)
+local auraBtn = Instance.new("TextButton", contentFrames.AutoKill)
 auraBtn.Size = UDim2.new(0, 200, 0, 40)
-auraBtn.Position = UDim2.new(0, 10, 0, 110)
+auraBtn.Position = UDim2.new(0, 10, 0, 60)
 auraBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
 auraBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 auraBtn.Text = "KillAura: ON"
 
---// Textfelder
-local rangeBox = Instance.new("TextBox", frame)
+local rangeBox = Instance.new("TextBox", contentFrames.AutoKill)
 rangeBox.Size = UDim2.new(0, 200, 0, 30)
-rangeBox.Position = UDim2.new(0, 10, 0, 160)
+rangeBox.Position = UDim2.new(0, 10, 0, 110)
 rangeBox.PlaceholderText = "Aura Range (z. B. 25)"
 rangeBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 rangeBox.TextColor3 = Color3.new(1, 1, 1)
 rangeBox.Text = ""
 
-local speedBox = Instance.new("TextBox", frame)
-speedBox.Size = UDim2.new(0, 200, 0, 30)
-speedBox.Position = UDim2.new(0, 10, 0, 200)
-speedBox.PlaceholderText = "Fly Speed (z. B. 50)"
-speedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-speedBox.TextColor3 = Color3.new(1, 1, 1)
-speedBox.Text = ""
-
---// Auge zum Minimieren
-local eyeBtn = Instance.new("TextButton", gui)
-eyeBtn.Size = UDim2.new(0, 40, 0, 40)
-eyeBtn.Position = UDim2.new(1, -50, 0, 10)
-eyeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-eyeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-eyeBtn.Text = "👁️"
-eyeBtn.Font = Enum.Font.SourceSans
-eyeBtn.TextSize = 30
-
-local uiVisible = true
-eyeBtn.MouseButton1Click:Connect(function()
-    uiVisible = not uiVisible
-    frame.Visible = uiVisible
-end)
-
---// AutoKill
+-- AutoKill Logik
 local autoKill = false
 autoKillBtn.MouseButton1Click:Connect(function()
     autoKill = not autoKill
@@ -107,7 +111,86 @@ task.spawn(function()
     end
 end)
 
---// Fly
+-- KillAura
+local auraEnabled = true
+local auraRange = 25
+local attackOffset = Vector3.new(0, 3, -3)
+
+local auraVisual = Instance.new("Part")
+auraVisual.Shape = Enum.PartType.Ball
+auraVisual.Anchored = true
+auraVisual.CanCollide = false
+auraVisual.Transparency = 0.6
+auraVisual.Color = Color3.fromRGB(255, 0, 0)
+auraVisual.Material = Enum.Material.ForceField
+auraVisual.Name = "KillAuraVisual"
+auraVisual.Parent = workspace
+auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+
+local function updateAuraSize(newRange)
+    auraRange = newRange
+    auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+    auraVisual.Color = Color3.fromRGB(255, 0, 0)
+end
+
+rangeBox.FocusLost:Connect(function()
+    local val = tonumber(rangeBox.Text)
+    if val and val > 0 then
+        updateAuraSize(val)
+    end
+end)
+
+auraBtn.MouseButton1Click:Connect(function()
+    auraEnabled = not auraEnabled
+    auraBtn.Text = "KillAura: " .. (auraEnabled and "ON" or "OFF")
+    auraBtn.BackgroundColor3 = auraEnabled and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(120, 30, 30)
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not auraEnabled or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local myHRP = player.Character.HumanoidRootPart
+    auraVisual.Position = myHRP.Position
+
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local enemyChar = otherPlayer.Character
+            local enemyHRP = enemyChar:FindFirstChild("HumanoidRootPart")
+            local hit = false
+
+            for _, part in ipairs(enemyChar:GetChildren()) do
+                if part:IsA("BasePart") then
+                    local distance = (part.Position - myHRP.Position).Magnitude
+                    if distance <= auraRange then
+                        hit = true
+                        break
+                    end
+                end
+            end
+
+            if hit then
+                enemyHRP.CFrame = myHRP.CFrame * CFrame.new(attackOffset)
+                ReplicatedStorage.rEvents.hitRemote:FireServer(enemyChar)
+            end
+        end
+    end
+end)
+
+-- Tab: Fly
+local flyBtn = Instance.new("TextButton", contentFrames.Fly)
+flyBtn.Size = UDim2.new(0, 200, 0, 40)
+flyBtn.Position = UDim2.new(0, 10, 0, 10)
+flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+flyBtn.TextColor3 = Color3.new(1, 1, 1)
+flyBtn.Text = "Fly: OFF"
+
+local speedBox = Instance.new("TextBox", contentFrames.Fly)
+speedBox.Size = UDim2.new(0, 200, 0, 30)
+speedBox.Position = UDim2.new(0, 10, 0, 60)
+speedBox.PlaceholderText = "Fly Speed (z. B. 50)"
+speedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+speedBox.TextColor3 = Color3.new(1, 1, 1)
+speedBox.Text = ""
+
 local flying = false
 local speed = 50
 
@@ -157,65 +240,29 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
---// Aura
-local auraEnabled = true
-local auraRange = 25
-local attackOffset = Vector3.new(0, 3, -3)
+-- Tab: Allgemein
+local autoToolBtn = Instance.new("TextButton", contentFrames.Allgemein)
+autoToolBtn.Size = UDim2.new(0, 200, 0, 40)
+autoToolBtn.Position = UDim2.new(0, 10, 0, 10)
+autoToolBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+autoToolBtn.TextColor3 = Color3.new(1, 1, 1)
+autoToolBtn.Text = "Auto Tool: OFF"
 
-local auraVisual = Instance.new("Part")
-auraVisual.Shape = Enum.PartType.Ball
-auraVisual.Anchored = true
-auraVisual.CanCollide = false
-auraVisual.Transparency = 0.6
-auraVisual.Color = Color3.fromRGB(255, 0, 0)
-auraVisual.Material = Enum.Material.ForceField
-auraVisual.Name = "KillAuraVisual"
-auraVisual.Parent = workspace
-auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
-
-local function updateAuraSize(newRange)
-    auraRange = newRange
-    auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
-end
-
-rangeBox.FocusLost:Connect(function()
-    local val = tonumber(rangeBox.Text)
-    if val and val > 0 then
-        updateAuraSize(val)
-    end
+local autoToolEnabled = false
+autoToolBtn.MouseButton1Click:Connect(function()
+    autoToolEnabled = not autoToolEnabled
+    autoToolBtn.Text = "Auto Tool: " .. (autoToolEnabled and "ON" or "OFF")
+    autoToolBtn.BackgroundColor3 = autoToolEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
 end)
 
-auraBtn.MouseButton1Click:Connect(function()
-    auraEnabled = not auraEnabled
-    auraBtn.Text = "KillAura: " .. (auraEnabled and "ON" or "OFF")
-    auraBtn.BackgroundColor3 = auraEnabled and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(80, 80, 80)
-end)
-
-RunService.Heartbeat:Connect(function()
-    if not auraEnabled or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
-    local myHRP = player.Character.HumanoidRootPart
-    auraVisual.Position = myHRP.Position
-
-    for _, otherPlayer in ipairs(Players:GetPlayers()) do
-        if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local enemyChar = otherPlayer.Character
-            local enemyHRP = enemyChar:FindFirstChild("HumanoidRootPart")
-            local hit = false
-
-            for _, part in ipairs(enemyChar:GetChildren()) do
-                if part:IsA("BasePart") then
-                    local distance = (part.Position - myHRP.Position).Magnitude
-                    if distance <= auraRange then
-                        hit = true
-                        break
-                    end
-                end
-            end
-
-            if hit then
-                enemyHRP.CFrame = myHRP.CFrame * CFrame.new(attackOffset)
-                ReplicatedStorage.rEvents.hitRemote:FireServer(enemyChar)
+task.spawn(function()
+    while true do
+        if autoToolEnabled and player.Character then
+            local tool = player.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                tool:Activate()
             end
         end
+        task.wait(0.1)
     end
 end)
