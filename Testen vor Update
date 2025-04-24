@@ -21,7 +21,7 @@ rangeBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 rangeBox.TextColor3 = Color3.new(1, 1, 1)
 rangeBox.Text = ""
 
---// Aura Visual erstellen
+--// Aura Visual
 local auraVisual = Instance.new("Part")
 auraVisual.Shape = Enum.PartType.Ball
 auraVisual.Anchored = true
@@ -33,7 +33,7 @@ auraVisual.Name = "KillAuraVisual"
 auraVisual.Parent = workspace
 auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
 
---// Update Visual bei Änderung
+--// Update Funktion
 local function updateAuraSize(newRange)
     auraRange = newRange
     auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
@@ -46,25 +46,30 @@ rangeBox.FocusLost:Connect(function()
     end
 end)
 
---// Kill Aura Funktion
+--// Aura Loop
 RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
-    if auraEnabled and char and char:FindFirstChild("HumanoidRootPart") then
-        local myHRP = char.HumanoidRootPart
-        auraVisual.Position = myHRP.Position
+    if not auraEnabled or not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local myHRP = char.HumanoidRootPart
 
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local targetHRP = player.Character.HumanoidRootPart
-                local dist = (myHRP.Position - targetHRP.Position).Magnitude
+    auraVisual.Position = myHRP.Position
 
-                if dist <= auraRange then
-                    -- Hitbox unsichtbar zu dir vor verschieben
-                    local newPos = myHRP.CFrame:ToWorldSpace(CFrame.new(attackOffset)).Position
-                    targetHRP.CFrame = CFrame.new(newPos) * CFrame.Angles(0, math.rad(math.random(0,360)), 0)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local enemyChar = player.Character
+            local enemyHRP = enemyChar:FindFirstChild("HumanoidRootPart")
 
-                    -- Hit auslösen
-                    ReplicatedStorage.rEvents.hitRemote:FireServer(player.Character)
+            -- Check alle Körperteile
+            for _, part in ipairs(enemyChar:GetChildren()) do
+                if part:IsA("BasePart") then
+                    local distance = (part.Position - myHRP.Position).Magnitude
+                    if distance <= auraRange then
+                        -- Teleportiere den HRP (Hitbox)
+                        enemyHRP.CFrame = myHRP.CFrame * CFrame.new(attackOffset)
+                        -- Schlag auslösen
+                        ReplicatedStorage.rEvents.hitRemote:FireServer(enemyChar)
+                        break -- nur einmal pro Gegner
+                    end
                 end
             end
         end
