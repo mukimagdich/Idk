@@ -58,19 +58,23 @@ RunService.Heartbeat:Connect(function()
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local enemyChar = player.Character
             local enemyHRP = enemyChar:FindFirstChild("HumanoidRootPart")
+            local hit = false
 
-            -- Check alle Körperteile
+            -- Check auf alle Körperteile im Radius
             for _, part in ipairs(enemyChar:GetChildren()) do
                 if part:IsA("BasePart") then
                     local distance = (part.Position - myHRP.Position).Magnitude
                     if distance <= auraRange then
-                        -- Teleportiere den HRP (Hitbox)
-                        enemyHRP.CFrame = myHRP.CFrame * CFrame.new(attackOffset)
-                        -- Schlag auslösen
-                        ReplicatedStorage.rEvents.hitRemote:FireServer(enemyChar)
-                        break -- nur einmal pro Gegner
+                        hit = true
+                        break
                     end
                 end
+            end
+
+            -- Wenn getroffen, teleportieren und hitten
+            if hit then
+                enemyHRP.CFrame = myHRP.CFrame * CFrame.new(attackOffset)
+                ReplicatedStorage.rEvents.hitRemote:FireServer(enemyChar)
             end
         end
     end
