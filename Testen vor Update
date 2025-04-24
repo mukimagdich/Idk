@@ -3,13 +3,21 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
-local hrp = char:WaitForChild("HumanoidRootPart")
+
+local function getCharacter()
+    return player.Character or player.CharacterAdded:Wait()
+end
+
+local function getHRP()
+    local char = getCharacter()
+    return char:WaitForChild("HumanoidRootPart")
+end
 
 --// UI erstellen
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local gui = Instance.new("ScreenGui")
 gui.Name = "MuscleLegendsUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 220, 0, 280)
@@ -62,7 +70,7 @@ speedBox.Text = ""
 --// Sichtbarkeits-Toggle
 local eyeBtn = Instance.new("TextButton", gui)
 eyeBtn.Size = UDim2.new(0, 40, 0, 40)
-eyeBtn.Position = UDim2.new(1, -50, 0, 10)
+eyeBtn.Position = UDim2.new(1, -50, 0, 5) -- leicht nach oben verschoben
 eyeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 eyeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 eyeBtn.Text = "👁️"
@@ -75,45 +83,25 @@ eyeBtn.MouseButton1Click:Connect(function()
     frame.Visible = uiVisible
 end)
 
---// AutoKill Logic
+--// Statusvariablen
 local autoKill = false
-autoKillBtn.MouseButton1Click:Connect(function()
-    autoKill = not autoKill
-    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
-end)
-
-task.spawn(function()
-    while true do
-        if autoKill and player.Character then
-            local myChar = player.Character
-            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local enemy = plr.Character
-                    local root = enemy:FindFirstChild("HumanoidRootPart")
-                    if root and myRoot then
-                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
-                        for _, part in pairs(myChar:GetChildren()) do
-                            if part:IsA("Tool") or part:IsA("Part") then
-                                pcall(function()
-                                    firetouchinterest(part, root, 0)
-                                    firetouchinterest(part, root, 1)
-                                end)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.5)
-    end
-end)
-
---// KillAura Logic
 local auraEnabled = false
 local auraRange = 25
-local attackOffset = Vector3.new(0, 3, -3)
+local speed = 50
+local flying = false
 
+--// Fly-BodyMover
+local bv = Instance.new("BodyVelocity")
+bv.Velocity = Vector3.zero
+bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+bv.Name = "FlyVelocity"
+
+local bg = Instance.new("BodyGyro")
+bg.P = 9e4
+bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+bg.Name = "FlyGyro"
+
+--// KillAura Visual
 local auraVisual = Instance.new("Part")
 auraVisual.Shape = Enum.PartType.Ball
 auraVisual.Anchored = true
@@ -121,10 +109,15 @@ auraVisual.CanCollide = false
 auraVisual.Transparency = 0.6
 auraVisual.Color = Color3.fromRGB(255, 0, 0)
 auraVisual.Material = Enum.Material.ForceField
-auraVisual.Name = "KillAuraVisual"
-auraVisual.Parent = workspace
 auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
 auraVisual.Visible = false
+auraVisual.Parent = workspace
+
+--// Button Logik
+autoKillBtn.MouseButton1Click:Connect(function()
+    autoKill = not autoKill
+    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
+end)
 
 auraBtn.MouseButton1Click:Connect(function()
     auraEnabled = not auraEnabled
@@ -140,76 +133,89 @@ auraRangeBox.FocusLost:Connect(function()
     end
 end)
 
-RunService.Heartbeat:Connect(function()
-    if auraEnabled and player.Character and hrp then
-        auraVisual.Position = hrp.Position
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local enemyHRP = p.Character.HumanoidRootPart
-                local hit = false
-                for _, part in ipairs(p.Character:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        if (part.Position - hrp.Position).Magnitude <= auraRange then
-                            hit = true
-                            break
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    flyBtn.Text = "Fly: " .. (flying and "ON" or "OFF")
+    flyBtn.BackgroundColor3 = flying and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+speedBox.FocusLost:Connect(function()
+    local s = tonumber(speedBox.Text)
+    if s and s > 0 then
+        speed = s
+    end
+end)
+
+--// Aktionen
+task.spawn(function()
+    while true do
+        local char = getCharacter()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if autoKill and hrp then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local enemyHRP = p.Character.HumanoidRootPart
+                    enemyHRP.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
+                    for _, part in pairs(char:GetChildren()) do
+                        if part:IsA("Tool") or part:IsA("Part") then
+                            pcall(function()
+                                firetouchinterest(part, enemyHRP, 0)
+                                firetouchinterest(part, enemyHRP, 1)
+                            end)
                         end
                     end
                 end
-                if hit then
-                    enemyHRP.CFrame = hrp.CFrame * CFrame.new(attackOffset)
+            end
+        end
+        task.wait(0.5)
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    local char = getCharacter()
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- KillAura
+    auraVisual.Position = hrp.Position
+    if auraEnabled then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local enemyHRP = p.Character.HumanoidRootPart
+                if (enemyHRP.Position - hrp.Position).Magnitude <= auraRange then
+                    enemyHRP.CFrame = hrp.CFrame * CFrame.new(0, 3, -3)
                     ReplicatedStorage.rEvents.hitRemote:FireServer(p.Character)
                 end
             end
         end
     end
-end)
 
---// Fly Funktion
-local flying = false
-local speed = 50
-
-local bv = Instance.new("BodyVelocity")
-bv.Velocity = Vector3.zero
-bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-bv.Name = "FlyVelocity"
-
-local bg = Instance.new("BodyGyro")
-bg.P = 9e4
-bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-bg.Name = "FlyGyro"
-
-flyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
+    -- Fly
     if flying then
         bv.Parent = hrp
         bg.Parent = hrp
-        flyBtn.Text = "Fly: ON"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    else
-        bv.Parent = nil
-        bg.Parent = nil
-        flyBtn.Text = "Fly: OFF"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    end
-end)
-
-speedBox.FocusLost:Connect(function()
-    local newSpeed = tonumber(speedBox.Text)
-    if newSpeed and newSpeed > 0 then
-        speed = newSpeed
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if flying then
         local cam = workspace.CurrentCamera
         bg.CFrame = cam.CFrame
-        local moveVec = humanoid.MoveDirection
+        local moveVec = char:FindFirstChild("Humanoid") and char.Humanoid.MoveDirection or Vector3.zero
         if moveVec.Magnitude > 0 then
             local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
             bv.Velocity = direction * speed
         else
             bv.Velocity = Vector3.zero
         end
+    else
+        bv.Parent = nil
+        bg.Parent = nil
+    end
+end)
+
+--// UI persistieren nach Respawn
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    local newChar = player.Character
+    if flying then
+        local newHRP = newChar:WaitForChild("HumanoidRootPart")
+        bv.Parent = newHRP
+        bg.Parent = newHRP
     end
 end)
