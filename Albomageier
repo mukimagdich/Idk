@@ -22,8 +22,7 @@ frame.Draggable = true
 local tabs = {
     AutoKill = Instance.new("TextButton", frame),
     Fly = Instance.new("TextButton", frame),
-    Allgemein = Instance.new("TextButton", frame),
-    Teleport = Instance.new("TextButton", frame)
+    Allgemein = Instance.new("TextButton", frame)
 }
 
 local contentFrames = {}
@@ -54,55 +53,216 @@ end
 createTab("AutoKill", 1)
 createTab("Fly", 2)
 createTab("Allgemein", 3)
-createTab("Teleport", 4)
 
--- Tab: Teleport
-local teleportBtn = Instance.new("TextButton", frame)
-teleportBtn.Size = UDim2.new(0, 75, 0, 30)
-teleportBtn.Position = UDim2.new(0, 10 + (4 - 1) * 80, 0, 10)
-teleportBtn.Text = "Teleport"
-teleportBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-teleportBtn.TextColor3 = Color3.new(1, 1, 1)
+-- Tab: AutoKill
+local autoKillBtn = Instance.new("TextButton", contentFrames.AutoKill)
+autoKillBtn.Size = UDim2.new(0, 200, 0, 40)
+autoKillBtn.Position = UDim2.new(0, 10, 0, 10)
+autoKillBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+autoKillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoKillBtn.Text = "AutoKill: OFF"
 
-local contentFrameTeleport = Instance.new("Frame", frame)
-contentFrameTeleport.Name = "TeleportContent"
-contentFrameTeleport.Size = UDim2.new(1, -20, 1, -50)
-contentFrameTeleport.Position = UDim2.new(0, 10, 0, 45)
-contentFrameTeleport.BackgroundTransparency = 1
-contentFrameTeleport.Visible = false
+local auraBtn = Instance.new("TextButton", contentFrames.AutoKill)
+auraBtn.Size = UDim2.new(0, 200, 0, 40)
+auraBtn.Position = UDim2.new(0, 10, 0, 60)
+auraBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+auraBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+auraBtn.Text = "KillAura: ON"
 
-local teleportTargetBox = Instance.new("TextBox", contentFrameTeleport)
-teleportTargetBox.Size = UDim2.new(0, 200, 0, 30)
-teleportTargetBox.Position = UDim2.new(0, 10, 0, 10)
-teleportTargetBox.PlaceholderText = "Teleport to Player Name"
-teleportTargetBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-teleportTargetBox.TextColor3 = Color3.new(1, 1, 1)
-teleportTargetBox.Text = ""
+local rangeBox = Instance.new("TextBox", contentFrames.AutoKill)
+rangeBox.Size = UDim2.new(0, 200, 0, 30)
+rangeBox.Position = UDim2.new(0, 10, 0, 110)
+rangeBox.PlaceholderText = "Aura Range (z. B. 25)"
+rangeBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+rangeBox.TextColor3 = Color3.new(1, 1, 1)
+rangeBox.Text = ""
 
-local teleportBtnAction = Instance.new("TextButton", contentFrameTeleport)
-teleportBtnAction.Size = UDim2.new(0, 200, 0, 40)
-teleportBtnAction.Position = UDim2.new(0, 10, 0, 50)
-teleportBtnAction.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-teleportBtnAction.TextColor3 = Color3.fromRGB(255, 255, 255)
-teleportBtnAction.Text = "Teleport"
-
-teleportBtn.MouseButton1Click:Connect(function()
-    contentFrameTeleport.Visible = not contentFrameTeleport.Visible
+-- AutoKill Logik
+local autoKill = false
+autoKillBtn.MouseButton1Click:Connect(function()
+    autoKill = not autoKill
+    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
 end)
 
-teleportBtnAction.MouseButton1Click:Connect(function()
-    local targetPlayerName = teleportTargetBox.Text
-    if targetPlayerName and targetPlayerName ~= "" then
-        local targetPlayer = Players:FindFirstChild(targetPlayerName)
-        if targetPlayer and targetPlayer.Character then
-            local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP then
-                hrp.CFrame = targetHRP.CFrame
+task.spawn(function()
+    while true do
+        if autoKill and player.Character then
+            local myChar = player.Character
+            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local enemy = plr.Character
+                    local root = enemy:FindFirstChild("HumanoidRootPart")
+                    if root and myRoot then
+                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
+                        for _, part in pairs(myChar:GetChildren()) do
+                            if part:IsA("Tool") or part:IsA("Part") then
+                                pcall(function()
+                                    firetouchinterest(part, root, 0)
+                                    firetouchinterest(part, root, 1)
+                                end)
+                            end
+                        end
+                    end
+                end
             end
-        else
-            warn("Player not found or character not loaded.")
+        end
+        task.wait(0.5)
+    end
+end)
+
+-- KillAura
+local auraEnabled = true
+local auraRange = 25
+local attackOffset = Vector3.new(0, 3, -3)
+
+local auraVisual = Instance.new("Part")
+auraVisual.Shape = Enum.PartType.Ball
+auraVisual.Anchored = true
+auraVisual.CanCollide = false
+auraVisual.Transparency = 0.6
+auraVisual.Color = Color3.fromRGB(255, 0, 0)
+auraVisual.Material = Enum.Material.ForceField
+auraVisual.Name = "KillAuraVisual"
+auraVisual.Parent = workspace
+auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+
+local function updateAuraSize(newRange)
+    auraRange = newRange
+    auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+    auraVisual.Color = Color3.fromRGB(255, 0, 0)
+end
+
+rangeBox.FocusLost:Connect(function()
+    local val = tonumber(rangeBox.Text)
+    if val and val > 0 then
+        updateAuraSize(val)
+    end
+end)
+
+auraBtn.MouseButton1Click:Connect(function()
+    auraEnabled = not auraEnabled
+    auraBtn.Text = "KillAura: " .. (auraEnabled and "ON" or "OFF")
+    auraBtn.BackgroundColor3 = auraEnabled and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(120, 30, 30)
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not auraEnabled or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local myHRP = player.Character.HumanoidRootPart
+    auraVisual.Position = myHRP.Position
+
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local enemyChar = otherPlayer.Character
+            local enemyHRP = enemyChar:FindFirstChild("HumanoidRootPart")
+            local hit = false
+
+            for _, part in ipairs(enemyChar:GetChildren()) do
+                if part:IsA("BasePart") then
+                    local distance = (part.Position - myHRP.Position).Magnitude
+                    if distance <= auraRange then
+                        hit = true
+                        break
+                    end
+                end
+            end
+
+            if hit then
+                enemyHRP.CFrame = myHRP.CFrame * CFrame.new(attackOffset)
+                ReplicatedStorage.rEvents.hitRemote:FireServer(enemyChar)
+            end
         end
     end
 end)
 
--- Hier kannst du weitere Tabs hinzufügen oder Funktionen hinzufügen, wie sie oben im Code erscheinen.
+-- Tab: Fly
+local flyBtn = Instance.new("TextButton", contentFrames.Fly)
+flyBtn.Size = UDim2.new(0, 200, 0, 40)
+flyBtn.Position = UDim2.new(0, 10, 0, 10)
+flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+flyBtn.TextColor3 = Color3.new(1, 1, 1)
+flyBtn.Text = "Fly: OFF"
+
+local speedBox = Instance.new("TextBox", contentFrames.Fly)
+speedBox.Size = UDim2.new(0, 200, 0, 30)
+speedBox.Position = UDim2.new(0, 10, 0, 60)
+speedBox.PlaceholderText = "Fly Speed (z. B. 50)"
+speedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+speedBox.TextColor3 = Color3.new(1, 1, 1)
+speedBox.Text = ""
+
+local flying = false
+local speed = 50
+
+local bv = Instance.new("BodyVelocity")
+bv.Velocity = Vector3.zero
+bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+bv.Name = "FlyVelocity"
+
+local bg = Instance.new("BodyGyro")
+bg.P = 9e4
+bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+bg.Name = "FlyGyro"
+
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        bv.Parent = hrp
+        bg.Parent = hrp
+        flyBtn.Text = "Fly: ON"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    else
+        bv.Parent = nil
+        bg.Parent = nil
+        flyBtn.Text = "Fly: OFF"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end
+end)
+
+speedBox.FocusLost:Connect(function()
+    local val = tonumber(speedBox.Text)
+    if val and val > 0 then
+        speed = val
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if flying then
+        local cam = workspace.CurrentCamera
+        bg.CFrame = cam.CFrame
+        local moveVec = humanoid.MoveDirection
+        if moveVec.Magnitude > 0 then
+            local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
+            bv.Velocity = direction * speed
+        else
+            bv.Velocity = Vector3.zero
+        end
+    end
+end)
+
+-- Tab: Allgemein
+local autoToolBtn = Instance.new("TextButton", contentFrames.Allgemein)
+autoToolBtn.Size = UDim2.new(0, 200, 0, 40)
+autoToolBtn.Position = UDim2.new(0, 10, 0, 10)
+autoToolBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+autoToolBtn.TextColor3 = Color3.new(1, 1, 1)
+autoToolBtn.Text = "Auto Tool: OFF"
+
+local autoToolEnabled = false
+autoToolBtn.MouseButton1Click:Connect(function()
+    autoToolEnabled = not autoToolEnabled
+    autoToolBtn.Text = "Auto Tool: " .. (autoToolEnabled and "ON" or "OFF")
+    autoToolBtn.BackgroundColor3 = autoToolEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+end)
+
+task.spawn(function()
+    while true do
+        if autoToolEnabled and player.Character then
+            local tool = player.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                tool:Activate()
+            end
+        end
+        task.wait(0.1)
+    end
+end)
