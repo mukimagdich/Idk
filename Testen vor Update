@@ -1,5 +1,3 @@
--- Teleport-UI mit acht Buttons: Beach, Spawn, Muscle King, Jungle King, Legends Gym, Eternal Gym, Ice Gym & Mythical Gym
-
 local player = game.Players.LocalPlayer
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "TeleportUI"
@@ -8,6 +6,8 @@ local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 200, 0, 400)
 frame.Position = UDim2.new(0, 20, 0, 200)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true -- Ermöglicht das Verschieben
 
 local function createButton(name, position, yPos)
     local btn = Instance.new("TextButton", frame)
