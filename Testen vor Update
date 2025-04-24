@@ -1,8 +1,23 @@
--- AutoHit (Clientseitig, Delta-kompatibel)
--- Aktiviert dauerhaft dein Tool, falls du eins ausgerüstet hast
+-- AutoHit mit UI (Clientseitig, Delta-kompatibel)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
+-- UI erstellen
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ToggleButton = Instance.new("TextButton", ScreenGui)
+
+ScreenGui.Name = "AutoHitUI"
+ToggleButton.Size = UDim2.new(0, 120, 0, 40)
+ToggleButton.Position = UDim2.new(0, 20, 0, 80)
+ToggleButton.Text = "AutoHit: OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.SourceSans
+ToggleButton.TextSize = 18
+
+-- AutoHit-Logik
+local autoHitEnabled = false
 
 local function Attack()
     local character = LocalPlayer.Character
@@ -14,7 +29,19 @@ local function Attack()
     end
 end
 
--- Dauerschleife mit task.wait() für bessere Performance
-while task.wait(0.1) do
-    Attack()
-end
+-- AutoHit-Loop
+task.spawn(function()
+    while true do
+        if autoHitEnabled then
+            Attack()
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- Button-Schalter
+ToggleButton.MouseButton1Click:Connect(function()
+    autoHitEnabled = not autoHitEnabled
+    ToggleButton.Text = "AutoHit: " .. (autoHitEnabled and "ON" or "OFF")
+    ToggleButton.BackgroundColor3 = autoHitEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+end)
