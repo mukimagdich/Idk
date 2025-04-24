@@ -1,81 +1,144 @@
---// Services
+--// Services & Player
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
 
---// Variablen
-local auraEnabled = true
-local auraRange = 25
-local attackOffset = Vector3.new(0, 3, -3)
+--// UI erstellen
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "MuscleLegendsUI"
 
---// UI
-local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-gui.Name = "AuraUI"
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 220, 0, 200)
+frame.Position = UDim2.new(0, 50, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
 
-local rangeBox = Instance.new("TextBox", gui)
-rangeBox.Size = UDim2.new(0, 200, 0, 30)
-rangeBox.Position = UDim2.new(0, 50, 0, 100)
-rangeBox.PlaceholderText = "Aura Range (z. B. 25)"
-rangeBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-rangeBox.TextColor3 = Color3.new(1, 1, 1)
-rangeBox.Text = ""
+local autoKillBtn = Instance.new("TextButton", frame)
+autoKillBtn.Size = UDim2.new(0, 200, 0, 50)
+autoKillBtn.Position = UDim2.new(0, 10, 0, 15)
+autoKillBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+autoKillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoKillBtn.Text = "AutoKill: OFF"
 
---// Aura Visual
-local auraVisual = Instance.new("Part")
-auraVisual.Shape = Enum.PartType.Ball
-auraVisual.Anchored = true
-auraVisual.CanCollide = false
-auraVisual.Transparency = 0.6
-auraVisual.Color = Color3.fromRGB(255, 0, 0)
-auraVisual.Material = Enum.Material.ForceField
-auraVisual.Name = "KillAuraVisual"
-auraVisual.Parent = workspace
-auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
+local flyBtn = Instance.new("TextButton", frame)
+flyBtn.Size = UDim2.new(0, 200, 0, 50)
+flyBtn.Position = UDim2.new(0, 10, 0, 85)
+flyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+flyBtn.TextColor3 = Color3.new(1, 1, 1)
+flyBtn.Text = "Fly: OFF"
 
---// Update Funktion
-local function updateAuraSize(newRange)
-    auraRange = newRange
-    auraVisual.Size = Vector3.new(auraRange * 2, auraRange * 2, auraRange * 2)
-end
+-- TextBox für Fluggeschwindigkeit
+local speedBox = Instance.new("TextBox", frame)
+speedBox.Size = UDim2.new(0, 200, 0, 30)
+speedBox.Position = UDim2.new(0, 10, 0, 150)
+speedBox.PlaceholderText = "Fly-Speed (z. B. 50)"
+speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+speedBox.TextColor3 = Color3.new(1, 1, 1)
+speedBox.Text = ""
 
-rangeBox.FocusLost:Connect(function()
-    local val = tonumber(rangeBox.Text)
-    if val and val > 0 then
-        updateAuraSize(val)
-    end
+--// Toggle Button für Sichtbarkeit
+local eyeBtn = Instance.new("TextButton", gui)
+eyeBtn.Size = UDim2.new(0, 40, 0, 40)
+eyeBtn.Position = UDim2.new(1, -50, 0, 10)
+eyeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+eyeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+eyeBtn.Text = "👁️"
+eyeBtn.Font = Enum.Font.SourceSans
+eyeBtn.TextSize = 30
+
+local uiVisible = true
+eyeBtn.MouseButton1Click:Connect(function()
+    uiVisible = not uiVisible
+    frame.Visible = uiVisible
 end)
 
---// Aura Loop
-RunService.Heartbeat:Connect(function()
-    local char = LocalPlayer.Character
-    if not auraEnabled or not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local myHRP = char.HumanoidRootPart
+--// AutoKill + AutoPunch
+local autoKill = false
+autoKillBtn.MouseButton1Click:Connect(function()
+    autoKill = not autoKill
+    autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
+end)
 
-    auraVisual.Position = myHRP.Position
+task.spawn(function()
+    while true do
+        if autoKill and player.Character then
+            local myChar = player.Character
+            local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local enemy = plr.Character
+                    local root = enemy:FindFirstChild("HumanoidRootPart")
+                    if root and myRoot then
+                        root.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local enemyChar = player.Character
-            local enemyHRP = enemyChar:FindFirstChild("HumanoidRootPart")
-            local hit = false
-
-            -- Check auf alle Körperteile im Radius
-            for _, part in ipairs(enemyChar:GetChildren()) do
-                if part:IsA("BasePart") then
-                    local distance = (part.Position - myHRP.Position).Magnitude
-                    if distance <= auraRange then
-                        hit = true
-                        break
+                        for _, part in pairs(myChar:GetChildren()) do
+                            if part:IsA("Tool") or part:IsA("Part") then
+                                pcall(function()
+                                    firetouchinterest(part, root, 0)
+                                    firetouchinterest(part, root, 1)
+                                end)
+                            end
+                        end
                     end
                 end
             end
+        end
+        task.wait(0.5)
+    end
+end)
 
-            -- Wenn getroffen, teleportieren und hitten
-            if hit then
-                enemyHRP.CFrame = myHRP.CFrame * CFrame.new(attackOffset)
-                ReplicatedStorage.rEvents.hitRemote:FireServer(enemyChar)
-            end
+--// Fly Funktion
+local flying = false
+local speed = 50
+
+local bv = Instance.new("BodyVelocity")
+bv.Velocity = Vector3.zero
+bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+bv.Name = "FlyVelocity"
+
+local bg = Instance.new("BodyGyro")
+bg.P = 9e4
+bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+bg.Name = "FlyGyro"
+
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        bv.Parent = hrp
+        bg.Parent = hrp
+        flyBtn.Text = "Fly: ON"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    else
+        bv.Parent = nil
+        bg.Parent = nil
+        flyBtn.Text = "Fly: OFF"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end
+end)
+
+-- Fly-Speed ändern über TextBox
+speedBox.FocusLost:Connect(function()
+    local newSpeed = tonumber(speedBox.Text)
+    if newSpeed and newSpeed > 0 then
+        speed = newSpeed
+    end
+end)
+
+-- Kamera-basiertes Fliegen
+RunService.Heartbeat:Connect(function()
+    if flying then
+        local cam = workspace.CurrentCamera
+        bg.CFrame = cam.CFrame
+        local moveVec = humanoid.MoveDirection
+        if moveVec.Magnitude > 0 then
+            local direction = cam.CFrame:VectorToWorldSpace(moveVec).Unit
+            bv.Velocity = direction * speed
+        else
+            bv.Velocity = Vector3.zero
         end
     end
 end)
