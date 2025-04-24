@@ -1,2 +1,48 @@
-local pos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-setclipboard(tostring(pos)) -- kopiert die Position in die Zwischenablage
+-- Teleport-UI mit acht Buttons: Beach, Spawn, Muscle King, Jungle King, Legends Gym, Eternal Gym, Ice Gym & Mythical Gym
+
+local player = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "TeleportUI"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 400)
+frame.Position = UDim2.new(0, 20, 0, 200)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+local function createButton(name, position, yPos)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.Text = "Teleport: " .. name
+    btn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 18
+
+    btn.MouseButton1Click:Connect(function()
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = CFrame.new(unpack(position))
+        end
+    end)
+end
+
+-- Positionen
+local beachPos = {40.848472595214844, 3.951777458190918, -186.62252807617188}
+local spawnPos = {159.66812133789062, 4.0017852783203125, 176.08578491210938}
+local muscleKingPos = {-8666.9130859375, 13.851815223693848, -5778.6865234375}
+local jungleKingPos = {-8702.103515625, 3.4307899475097656, 2386.681640625}
+local legendsGymPos = {4603.28173828125, 988.179931640625, -3897.86572265625}
+local eternalGymPos = {-6758.9638671875, 4.0017991065979, -1284.918701171875}
+local iceGymPos = {-2687.34765625, 4.0017852783203125, -421.1365966796875}
+local mythicalGymPos = {2250.778076171875, 4.0017852783203125, 1073.2266845703125}
+
+-- Buttons erzeugen
+createButton("Beach", beachPos, 20)
+createButton("Spawn", spawnPos, 70)
+createButton("Muscle King", muscleKingPos, 120)
+createButton("Jungle King", jungleKingPos, 170)
+createButton("Legends Gym", legendsGymPos, 220)
+createButton("Eternal Gym", eternalGymPos, 270)
+createButton("Ice Gym", iceGymPos, 320)
+createButton("Mythical Gym", mythicalGymPos, 370)
