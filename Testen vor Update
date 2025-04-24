@@ -1,211 +1,126 @@
 --// Services
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
 local hrp = char:WaitForChild("HumanoidRootPart")
 
---// UI
-local gui = Instance.new("ScreenGui", game.CoreGui)
+--// UI erstellen
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "MuscleLegendsUI"
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 300, 0, 300)
-frame.Position = UDim2.new(0, 100, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-frame.Active = true
-frame.Draggable = true
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0, 50, 0, 100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Active = true
+mainFrame.Draggable = true
 
-local tabHolder = Instance.new("Frame", frame)
-tabHolder.Size = UDim2.new(0, 300, 0, 40)
-tabHolder.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+--// Tab Buttons
+local tabButtons = {}
+local tabs = {}
+local tabNames = {"AutoKill", "Fly", "Player"}
 
-local contentHolder = Instance.new("Frame", frame)
-contentHolder.Size = UDim2.new(0, 300, 0, 260)
-contentHolder.Position = UDim2.new(0, 0, 0, 40)
-contentHolder.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+for i, name in ipairs(tabNames) do
+    local button = Instance.new("TextButton", mainFrame)
+    button.Size = UDim2.new(0, 100, 0, 30)
+    button.Position = UDim2.new(0, (i - 1) * 100, 0, 0)
+    button.Text = name
+    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    tabButtons[name] = button
 
--- Tabs
-local function createTabButton(name, position)
-	local btn = Instance.new("TextButton", tabHolder)
-	btn.Size = UDim2.new(0, 150, 0, 40)
-	btn.Position = UDim2.new(0, position, 0, 0)
-	btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Text = name
-	return btn
+    local tabFrame = Instance.new("Frame", mainFrame)
+    tabFrame.Size = UDim2.new(1, 0, 1, -30)
+    tabFrame.Position = UDim2.new(0, 0, 0, 30)
+    tabFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    tabFrame.Visible = false
+    tabs[name] = tabFrame
 end
 
-local tabAuto = createTabButton("AutoKill", 0)
-local tabFly = createTabButton("Fly", 150)
-
-local function createPage()
-	local page = Instance.new("Frame", contentHolder)
-	page.Size = UDim2.new(1, 0, 1, 0)
-	page.BackgroundTransparency = 1
-	page.Visible = false
-	return page
+--// Tab Switching
+local function switchTab(tabName)
+    for name, frame in pairs(tabs) do
+        frame.Visible = (name == tabName)
+    end
 end
 
-local autoPage = createPage()
-local flyPage = createPage()
-
-local function switchTab(tab)
-	autoPage.Visible = false
-	flyPage.Visible = false
-	if tab == "AutoKill" then
-		autoPage.Visible = true
-	elseif tab == "Fly" then
-		flyPage.Visible = true
-	end
+for name, button in pairs(tabButtons) do
+    button.MouseButton1Click:Connect(function()
+        switchTab(name)
+    end)
 end
 
-tabAuto.MouseButton1Click:Connect(function() switchTab("AutoKill") end)
-tabFly.MouseButton1Click:Connect(function() switchTab("Fly") end)
-switchTab("AutoKill")
+switchTab("AutoKill") -- Default Tab
 
--- AutoKill UI
-local function createButton(parent, text, posY)
-	local btn = Instance.new("TextButton", parent)
-	btn.Size = UDim2.new(0, 260, 0, 40)
-	btn.Position = UDim2.new(0, 20, 0, posY)
-	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	return btn
-end
+--// AutoKill Tab
+do
+    local frame = tabs["AutoKill"]
 
-local autoKillBtn = createButton(autoPage, "AutoKill: OFF", 20)
-local autoHitBtn = createButton(autoPage, "AutoHit: OFF", 70)
-local auraBtn = createButton(autoPage, "Kill Aura: OFF", 120)
+    -- AutoKill Button
+    local autoKillBtn = Instance.new("TextButton", frame)
+    autoKillBtn.Size = UDim2.new(0, 260, 0, 40)
+    autoKillBtn.Position = UDim2.new(0, 20, 0, 10)
+    autoKillBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    autoKillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoKillBtn.Text = "AutoKill: OFF"
 
-local autoKill = false
-local autoHit = false
-local aura = false
+    local autoKill = false
+    autoKillBtn.MouseButton1Click:Connect(function()
+        autoKill = not autoKill
+        autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
+    end)
 
--- Toggles
-autoKillBtn.MouseButton1Click:Connect(function()
-	autoKill = not autoKill
-	autoKillBtn.Text = "AutoKill: " .. (autoKill and "ON" or "OFF")
-	autoKillBtn.BackgroundColor3 = autoKill and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(80, 80, 80)
-end)
+    -- AutoHit Button
+    local autoHitBtn = Instance.new("TextButton", frame)
+    autoHitBtn.Size = UDim2.new(0, 260, 0, 40)
+    autoHitBtn.Position = UDim2.new(0, 20, 0, 60)
+    autoHitBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    autoHitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoHitBtn.Text = "AutoHit: OFF"
 
-autoHitBtn.MouseButton1Click:Connect(function()
-	autoHit = not autoHit
-	autoHitBtn.Text = "AutoHit: " .. (autoHit and "ON" or "OFF")
-	autoHitBtn.BackgroundColor3 = autoHit and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(80, 80, 80)
-end)
+    local autoHitEnabled = false
+    autoHitBtn.MouseButton1Click:Connect(function()
+        autoHitEnabled = not autoHitEnabled
+        autoHitBtn.Text = "AutoHit: " .. (autoHitEnabled and "ON" or "OFF")
+    end)
 
-auraBtn.MouseButton1Click:Connect(function()
-	aura = not aura
-	auraBtn.Text = "Kill Aura: " .. (aura and "ON" or "OFF")
-	auraBtn.BackgroundColor3 = aura and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(80, 80, 80)
-end)
+    task.spawn(function()
+        while true do
+            if autoHitEnabled then
+                local character = player.Character
+                if character then
+                    local tool = character:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
+                    end
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
 
--- AutoKill Logic
-task.spawn(function()
-	while true do
-		if autoKill then
-			for _, target in pairs(Players:GetPlayers()) do
-				if target ~= player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-					local theirRoot = target.Character.HumanoidRootPart
-					theirRoot.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
-					for _, p in pairs(char:GetChildren()) do
-						if p:IsA("Tool") or p:IsA("Part") then
-							pcall(function()
-								firetouchinterest(p, theirRoot, 0)
-								firetouchinterest(p, theirRoot, 1)
-							end)
-						end
-					end
-				end
-			end
-		end
-		task.wait(0.3)
-	end
-end)
+    -- KillAura Button
+    local auraBtn = Instance.new("TextButton", frame)
+    auraBtn.Size = UDim2.new(0, 260, 0, 40)
+    auraBtn.Position = UDim2.new(0, 20, 0, 110)
+    auraBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    auraBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    auraBtn.Text = "KillAura: ON"
 
--- AutoHit Logic
-task.spawn(function()
-	while true do
-		if autoHit then
-			local tool = char:FindFirstChildOfClass("Tool")
-			if tool then tool:Activate() end
-		end
-		task.wait(0.1)
-	end
-end)
+    local auraEnabled = true
+    auraBtn.MouseButton1Click:Connect(function()
+        auraEnabled = not auraEnabled
+        auraBtn.Text = "KillAura: " .. (auraEnabled and "ON" or "OFF")
+        auraBtn.BackgroundColor3 = auraEnabled and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(80, 80, 80)
+    end)
 
--- Kill Aura (Raycast)
-task.spawn(function()
-	while true do
-		if aura and char then
-			local root = char:FindFirstChild("HumanoidRootPart")
-			local tool = char:FindFirstChildOfClass("Tool")
-			if root and tool then
-				for _, v in pairs(Players:GetPlayers()) do
-					if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-						local targetRoot = v.Character.HumanoidRootPart
-						local distance = (targetRoot.Position - root.Position).Magnitude
-						if distance <= 10 then
-							local ray = Ray.new(root.Position, (targetRoot.Position - root.Position).Unit * 10)
-							local part, _ = workspace:FindPartOnRay(ray, char, false, true)
-							if part and part:IsDescendantOf(v.Character) then
-								tool:Activate()
-							end
-						end
-					end
-				end
-			end
-		end
-		task.wait(0.1)
-	end
-end)
-
--- Fly UI
-local flyBtn = createButton(flyPage, "Fly: OFF", 20)
-local speedBox = Instance.new("TextBox", flyPage)
-speedBox.Size = UDim2.new(0, 260, 0, 30)
-speedBox.Position = UDim2.new(0, 20, 0, 70)
-speedBox.PlaceholderText = "Fly Speed (z. B. 50)"
-speedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-speedBox.TextColor3 = Color3.new(1, 1, 1)
-
-local flying = false
-local flySpeed = 50
-local keys = {W = false, A = false, S = false, D = false, Space = false, LeftShift = false}
-
--- Fly Control
-flyBtn.MouseButton1Click:Connect(function()
-	flying = not flying
-	flyBtn.Text = "Fly: " .. (flying and "ON" or "OFF")
-	flyBtn.BackgroundColor3 = flying and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(80, 80, 80)
-end)
-
-speedBox.FocusLost:Connect(function()
-	local n = tonumber(speedBox.Text)
-	if n then flySpeed = n end
-end)
-
-UserInputService.InputBegan:Connect(function(input)
-	if keys[input.KeyCode.Name] ~= nil then keys[input.KeyCode.Name] = true end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if keys[input.KeyCode.Name] ~= nil then keys[input.KeyCode.Name] = false end
-end)
-
-RunService.RenderStepped:Connect(function()
-	if flying then
-		local move = Vector3.zero
-		if keys.W then move += workspace.CurrentCamera.CFrame.LookVector end
-		if keys.S then move -= workspace.CurrentCamera.CFrame.LookVector end
-		if keys.A then move -= workspace.CurrentCamera.CFrame.RightVector end
-		if keys.D then move += workspace.CurrentCamera.CFrame.RightVector end
-		if keys.Space then move += Vector3.new(0, 1, 0) end
-		if keys.LeftShift then move -= Vector3.new(0, 1, 0) end
-		hrp.Velocity = move.Unit * flySpeed
-	end
-end)
+    -- Aura Range Box
+    local rangeBox = Instance.new("TextBox", frame)
+    rangeBox.Size = UDim2.new(0, 260, 0, 30)
+    rangeBox.Position = UDim2.new(0, 20, 0, 160)
+    rangeBox.PlaceholderText 
