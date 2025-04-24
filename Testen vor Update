@@ -70,7 +70,7 @@ speedBox.Text = ""
 --// Sichtbarkeits-Toggle
 local eyeBtn = Instance.new("TextButton", gui)
 eyeBtn.Size = UDim2.new(0, 40, 0, 40)
-eyeBtn.Position = UDim2.new(1, -50, 0, 5) -- leicht nach oben verschoben
+eyeBtn.Position = UDim2.new(1, -50, 0, 0) -- noch weiter oben
 eyeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 eyeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 eyeBtn.Text = "👁️"
@@ -149,19 +149,21 @@ end)
 --// Aktionen
 task.spawn(function()
     while true do
-        local char = getCharacter()
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if autoKill and hrp then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local enemyHRP = p.Character.HumanoidRootPart
-                    enemyHRP.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
-                    for _, part in pairs(char:GetChildren()) do
-                        if part:IsA("Tool") or part:IsA("Part") then
-                            pcall(function()
-                                firetouchinterest(part, enemyHRP, 0)
-                                firetouchinterest(part, enemyHRP, 1)
-                            end)
+        if autoKill then
+            local char = getCharacter()
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local enemyHRP = p.Character.HumanoidRootPart
+                        enemyHRP.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
+                        for _, part in pairs(char:GetChildren()) do
+                            if part:IsA("Tool") or part:IsA("Part") then
+                                pcall(function()
+                                    firetouchinterest(part, enemyHRP, 0)
+                                    firetouchinterest(part, enemyHRP, 1)
+                                end)
+                            end
                         end
                     end
                 end
