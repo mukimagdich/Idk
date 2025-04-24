@@ -1,48 +1,178 @@
 local player = game.Players.LocalPlayer
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "TeleportUI"
+gui.Name = "MuscleLegendsUI"
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 200, 0, 400)
-frame.Position = UDim2.new(0, 20, 0, 200)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.Active = true
-frame.Draggable = true -- Ermöglicht das Verschieben
+-- Hauptframe
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0, 20, 0, 100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Active = true
+mainFrame.Draggable = true
 
-local function createButton(name, position, yPos)
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(1, -20, 0, 40)
-    btn.Position = UDim2.new(0, 10, 0, yPos)
-    btn.Text = "Teleport: " .. name
-    btn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 18
+-- Tab Buttons
+local tabButtons = {}
+local currentTab
 
-    btn.MouseButton1Click:Connect(function()
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.CFrame = CFrame.new(unpack(position))
-        end
-    end)
+local tabFrame = Instance.new("Frame", mainFrame)
+tabFrame.Size = UDim2.new(1, 0, 0, 40)
+tabFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+
+local function switchTab(tabName)
+	for name, frame in pairs(tabButtons) do
+		frame.tab.Visible = (name == tabName)
+	end
 end
 
--- Positionen
-local beachPos = {40.848472595214844, 3.951777458190918, -186.62252807617188}
-local spawnPos = {159.66812133789062, 4.0017852783203125, 176.08578491210938}
-local muscleKingPos = {-8666.9130859375, 13.851815223693848, -5778.6865234375}
-local jungleKingPos = {-8702.103515625, 3.4307899475097656, 2386.681640625}
-local legendsGymPos = {4603.28173828125, 988.179931640625, -3897.86572265625}
-local eternalGymPos = {-6758.9638671875, 4.0017991065979, -1284.918701171875}
-local iceGymPos = {-2687.34765625, 4.0017852783203125, -421.1365966796875}
-local mythicalGymPos = {2250.778076171875, 4.0017852783203125, 1073.2266845703125}
+local function createTabButton(name, position)
+	local button = Instance.new("TextButton", tabFrame)
+	button.Size = UDim2.new(0, 75, 1, 0)
+	button.Position = UDim2.new(0, position, 0, 0)
+	button.Text = name
+	button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+	button.TextColor3 = Color3.new(1, 1, 1)
 
--- Buttons erzeugen
-createButton("Beach", beachPos, 20)
-createButton("Spawn", spawnPos, 70)
-createButton("Muscle King", muscleKingPos, 120)
-createButton("Jungle King", jungleKingPos, 170)
-createButton("Legends Gym", legendsGymPos, 220)
-createButton("Eternal Gym", eternalGymPos, 270)
-createButton("Ice Gym", iceGymPos, 320)
-createButton("Mythical Gym", mythicalGymPos, 370)
+	local tab = Instance.new("Frame", mainFrame)
+	tab.Size = UDim2.new(1, 0, 1, -40)
+	tab.Position = UDim2.new(0, 0, 0, 40)
+	tab.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	tab.Visible = false
+
+	button.MouseButton1Click:Connect(function()
+		switchTab(name)
+	end)
+
+	tabButtons[name] = {button = button, tab = tab}
+end
+
+-- Tabs erstellen
+createTabButton("AutoKill", 0)
+createTabButton("Fly", 80)
+createTabButton("Allgemein", 160)
+createTabButton("Teleport", 240)
+
+-- ===== AutoKill Tab =====
+local autoKillTab = tabButtons["AutoKill"].tab
+
+local autoKillEnabled = false
+local function autoKill()
+	while autoKillEnabled do
+		for _, v in pairs(game.Players:GetPlayers()) do
+			if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+				local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					hrp.CFrame = v.Character.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0)
+					wait(0.1)
+				end
+			end
+		end
+		task.wait()
+	end
+end
+
+local btnAutoKill = Instance.new("TextButton", autoKillTab)
+btnAutoKill.Size = UDim2.new(1, -20, 0, 40)
+btnAutoKill.Position = UDim2.new(0, 10, 0, 20)
+btnAutoKill.Text = "AutoKill: OFF"
+btnAutoKill.BackgroundColor3 = Color3.fromRGB(100, 60, 60)
+btnAutoKill.TextColor3 = Color3.new(1, 1, 1)
+
+btnAutoKill.MouseButton1Click:Connect(function()
+	autoKillEnabled = not autoKillEnabled
+	btnAutoKill.Text = autoKillEnabled and "AutoKill: ON" or "AutoKill: OFF"
+	btnAutoKill.BackgroundColor3 = autoKillEnabled and Color3.fromRGB(60, 100, 60) or Color3.fromRGB(100, 60, 60)
+	if autoKillEnabled then
+		coroutine.wrap(autoKill)()
+	end
+end)
+
+-- ===== Fly Tab =====
+local flyTab = tabButtons["Fly"].tab
+
+local flyEnabled = false
+local flySpeed = 100
+
+local flyBtn = Instance.new("TextButton", flyTab)
+flyBtn.Size = UDim2.new(1, -20, 0, 40)
+flyBtn.Position = UDim2.new(0, 10, 0, 20)
+flyBtn.Text = "Fly: OFF"
+flyBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 60)
+flyBtn.TextColor3 = Color3.new(1, 1, 1)
+
+flyBtn.MouseButton1Click:Connect(function()
+	flyEnabled = not flyEnabled
+	flyBtn.Text = flyEnabled and "Fly: ON" or "Fly: OFF"
+	flyBtn.BackgroundColor3 = flyEnabled and Color3.fromRGB(60, 100, 60) or Color3.fromRGB(100, 60, 60)
+
+	local char = player.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	if flyEnabled then
+		coroutine.wrap(function()
+			while flyEnabled do
+				hrp.Velocity = Vector3.new(0, flySpeed, 0)
+				wait()
+			end
+		end)()
+	end
+end)
+
+-- ===== Allgemein Tab =====
+local generalTab = tabButtons["Allgemein"].tab
+
+local autoToolBtn = Instance.new("TextButton", generalTab)
+autoToolBtn.Size = UDim2.new(1, -20, 0, 40)
+autoToolBtn.Position = UDim2.new(0, 10, 0, 20)
+autoToolBtn.Text = "Auto Tool"
+autoToolBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+autoToolBtn.TextColor3 = Color3.new(1, 1, 1)
+
+autoToolBtn.MouseButton1Click:Connect(function()
+	while true do
+		local tool = player.Backpack:FindFirstChildOfClass("Tool")
+		if tool then
+			player.Character.Humanoid:EquipTool(tool)
+		end
+		wait(1)
+	end
+end)
+
+-- ===== Teleport Tab =====
+local teleportTab = tabButtons["Teleport"].tab
+
+local function createTeleportButton(name, pos, yPos)
+	local btn = Instance.new("TextButton", teleportTab)
+	btn.Size = UDim2.new(1, -20, 0, 40)
+	btn.Position = UDim2.new(0, 10, 0, yPos)
+	btn.Text = "Teleport: " .. name
+	btn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+
+	btn.MouseButton1Click:Connect(function()
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			hrp.CFrame = CFrame.new(unpack(pos))
+		end
+	end)
+end
+
+-- Positionen definieren
+local teleportLocations = {
+	{"Beach", {40.848472595214844, 3.951777458190918, -186.62252807617188}},
+	{"Spawn", {159.66812133789062, 4.0017852783203125, 176.08578491210938}},
+	{"Muscle King", {-8666.9130859375, 13.851815223693848, -5778.6865234375}},
+	{"Jungle Gym", {-8702.103515625, 3.4307899475097656, 2386.681640625}},
+	{"Legends Gym", {4603.28173828125, 988.179931640625, -3897.86572265625}},
+	{"Eternal Gym", {-6758.9638671875, 4.0017991065979, -1284.918701171875}},
+	{"Ice Gym", {-2687.34765625, 4.0017852783203125, -421.1365966796875}},
+	{"Mythical Gym", {2250.778076171875, 4.0017852783203125, 1073.2266845703125}},
+}
+
+for i, v in ipairs(teleportLocations) do
+	createTeleportButton(v[1], v[2], 20 + (i - 1) * 50)
+end
+
+-- Standardmäßig ersten Tab anzeigen
+switchTab("AutoKill")
