@@ -1,0 +1,100 @@
+-- UI erstellen
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoUI"
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Auto Train Button
+local TrainButton = Instance.new("TextButton")
+TrainButton.Size = UDim2.new(0, 200, 0, 50)
+TrainButton.Position = UDim2.new(0, 20, 0, 20)
+TrainButton.Text = "Auto Train: OFF"
+TrainButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+TrainButton.TextScaled = true
+TrainButton.Parent = ScreenGui
+
+-- Auto Sell Button
+local SellButton = Instance.new("TextButton")
+SellButton.Size = UDim2.new(0, 200, 0, 50)
+SellButton.Position = UDim2.new(0, 20, 0, 80)
+SellButton.Text = "Auto Sell: OFF"
+SellButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+SellButton.TextScaled = true
+SellButton.Parent = ScreenGui
+
+-- Auto Hatch Button
+local HatchButton = Instance.new("TextButton")
+HatchButton.Size = UDim2.new(0, 200, 0, 50)
+HatchButton.Position = UDim2.new(0, 20, 0, 140)
+HatchButton.Text = "Auto Hatch: OFF"
+HatchButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+HatchButton.TextScaled = true
+HatchButton.Parent = ScreenGui
+
+-- Status-Variablen
+local autoTrain = false
+local autoSell = false
+local autoHatch = false
+
+-- Funktionen
+local function blowBubble()
+    local args = { [1] = "BlowBubble" }
+    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework")
+        :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+end
+
+local function sellBubble()
+    local args = { [1] = "SellBubble" }
+    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework")
+        :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+end
+
+local function hatchEgg()
+    local args = {
+        [1] = "HatchEgg",
+        [2] = "Rainbow Egg", -- du kannst hier den Namen des Eis ändern
+        [3] = 1 -- 1 = einmal hatching, 3 = dreifach, 8 = achtfach (wenn freigeschaltet)
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Framework")
+        :WaitForChild("Network"):WaitForChild("Remote"):WaitForChild("Event"):FireServer(unpack(args))
+end
+
+-- Loops
+task.spawn(function()
+    while true do
+        if autoTrain then blowBubble() end
+        task.wait(0.1)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if autoSell then sellBubble() end
+        task.wait(1.5)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if autoHatch then hatchEgg() end
+        task.wait(2.5) -- nicht zu schnell wegen Animation und Anti-Cheat
+    end
+end)
+
+-- Button-Funktionen
+TrainButton.MouseButton1Click:Connect(function()
+    autoTrain = not autoTrain
+    TrainButton.Text = "Auto Train: " .. (autoTrain and "ON" or "OFF")
+    TrainButton.BackgroundColor3 = autoTrain and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+SellButton.MouseButton1Click:Connect(function()
+    autoSell = not autoSell
+    SellButton.Text = "Auto Sell: " .. (autoSell and "ON" or "OFF")
+    SellButton.BackgroundColor3 = autoSell and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+HatchButton.MouseButton1Click:Connect(function()
+    autoHatch = not autoHatch
+    HatchButton.Text = "Auto Hatch: " .. (autoHatch and "ON" or "OFF")
+    HatchButton.BackgroundColor3 = autoHatch and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end)
