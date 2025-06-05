@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- REMOTE EVENT
 local muscleEvent = player:WaitForChild("muscleEvent")
@@ -22,6 +23,7 @@ local Window = library:AddWindow("44 Hub", {
 -- TABS
 local mainTab = Window:AddTab("Main")
 local killTab = Window:AddTab("Auto Kill")
+local rebirthTab = Window:AddTab("Rebirth")
 
 -- AUTO MUSCLE
 local autoMuscleEnabled = false
@@ -39,6 +41,12 @@ end)
 local autoKill2Enabled = false
 killTab:AddSwitch("Auto Kill 2", function(state)
     autoKill2Enabled = state
+end)
+
+-- AUTO REBIRTH
+local autoRebirthEnabled = false
+rebirthTab:AddSwitch("Auto Rebirth", function(state)
+    autoRebirthEnabled = state
 end)
 
 -- TOOL VERWENDEN
@@ -99,6 +107,19 @@ task.spawn(function()
             pcall(function()
                 muscleEvent:FireServer("rep", interactSeat)
             end)
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- AUTO REBIRTH LOGIK
+task.spawn(function()
+    while true do
+        if autoRebirthEnabled then
+            pcall(function()
+                ReplicatedStorage.rEvents.rebirthRemote:InvokeServer("rebirthRequest")
+            end)
+            task.wait(0.3)
         end
         task.wait(0.1)
     end
