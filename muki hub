@@ -1,23 +1,23 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/obeseinsect/roblox/main/Ui%20Libraries/Elerium.lua"))()
 
 local window = library:AddWindow("Muki's private")
-local tab = window:AddTab("farming")
+local mainTab = window:AddTab("farming")
 
-local autoRep = false
+local autoRepEnabled = false
 
-tab:AddSwitch("Auto Rep", function(state)
-    autoRep = state
-    if autoRep then
-        -- Startet einen neuen Thread, damit das Spammen läuft, bis deaktiviert wird
-        task.spawn(function()
-            while autoRep do
-                pcall(function()
-                    muscleEvent:FireServer()
-                end)
-                task.wait(0.1) -- ggf. schneller oder langsamer einstellen
-            end
-        end)
+mainTab:AddSwitch("Auto Rep", function(state)
+    autoRepEnabled = state
+end)
+
+task.spawn(function()
+    while true do
+        if autoRepEnabled then
+            pcall(function()
+                muscleEvent:FireServer("rep", interactSeat)
+            end)
+        end
+        task.wait(0.1)
     end
 end)
 
-tab:AddLabel("by Muki – Elerium ready")
+mainTab:AddLabel("by Muki – Elerium ready")
