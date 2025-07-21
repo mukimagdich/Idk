@@ -1,1 +1,30 @@
 local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Muki's Rayfield GUI",
+    LoadingTitle = "Lädt...",
+    LoadingSubtitle = "by Muki",
+    ConfigurationSaving = {
+        Enabled = false,
+    },
+    Discord = {
+        Enabled = false,
+    }
+})
+
+local FarmingTab = Window:CreateTab("Farming", 4483362458) -- Icon optional
+
+local autoRep = false
+
+FarmingTab:CreateToggle({
+    Name = "Auto Rep",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoRep = Value
+        print("Auto Rep:", autoRep)
+        -- Hier kannst du deinen Farming-Code starten/stoppen!
+    end,
+})
+
+FarmingTab:CreateLabel("by Muki – Rayfield ready!")
+
